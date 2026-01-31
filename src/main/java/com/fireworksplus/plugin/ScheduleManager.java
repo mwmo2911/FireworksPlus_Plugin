@@ -47,6 +47,17 @@ public class ScheduleManager {
         fmt = DateTimeFormatter.ofPattern(pattern);
     }
 
+    public boolean removeSchedule(String id) {
+        if (id == null || id.isBlank()) return false;
+
+        String base = "jobs." + id;
+        if (!yaml.contains(base)) return false;
+
+        yaml.set(base, null); // delete whole section
+        saveFile();
+        return true;
+    }
+
     public void saveFile() {
         try { yaml.save(file); } catch (IOException ignored) {}
     }

@@ -215,6 +215,26 @@ public class FwCommand implements CommandExecutor {
             return true;
         }
 
+        // /fw unschedule <id>
+        if (sub.equals("unschedule")) {
+            if (!player.hasPermission("fireworksplus.admin")) {
+                player.sendMessage(ChatColor.RED + "No permission.");
+                return true;
+            }
+            if (args.length != 2) {
+                player.sendMessage(ChatColor.RED + "Usage: " + ChatColor.WHITE + "/fw unschedule <id>");
+                return true;
+            }
+
+            boolean ok = schedule.removeSchedule(args[1]);
+            if (ok) {
+                player.sendMessage(ChatColor.GREEN + "Schedule removed: " + ChatColor.WHITE + args[1]);
+            } else {
+                player.sendMessage(ChatColor.RED + "Schedule not found: " + ChatColor.WHITE + args[1]);
+            }
+            return true;
+        }
+
         // /fw info <show>
         if (sub.equals("info")) {
             if (args.length != 2) {
@@ -294,6 +314,7 @@ public class FwCommand implements CommandExecutor {
         player.sendMessage(ChatColor.WHITE + "/fw save" + ChatColor.AQUA + " - save draft to shows.yml");
         if (player.hasPermission("fireworksplus.admin")) {
             player.sendMessage(ChatColor.WHITE + "/fw schedule <show> <yyyy-MM-dd> <HH:mm>" + ChatColor.AQUA + " - schedule show at your location");
+            player.sendMessage(ChatColor.WHITE + "/fw unschedule <id>" + ChatColor.AQUA + " - remove a scheduled show");
             player.sendMessage(ChatColor.WHITE + "/fw schedules" + ChatColor.AQUA + " - list schedules");
             player.sendMessage(ChatColor.WHITE + "/fw reload" + ChatColor.AQUA + " - reload config");
         }

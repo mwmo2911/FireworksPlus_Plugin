@@ -26,6 +26,7 @@ public class FireworksPlus extends JavaPlugin {
         var cmd = getCommand("fw");
         if (cmd != null) {
             cmd.setExecutor(new FwCommand(this, showMenu, showService, showStorage, draftManager, scheduleManager));
+            cmd.setTabCompleter(new FwTabCompleter(this, showStorage, scheduleManager));
         }
 
         scheduleManager.startPolling();

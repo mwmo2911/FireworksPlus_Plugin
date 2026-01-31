@@ -3,6 +3,7 @@ package com.fireworksplus.plugin;
 import org.bukkit.Color;
 import org.bukkit.FireworkEffect;
 import org.bukkit.Location;
+import org.bukkit.Sound;
 import org.bukkit.World;
 import org.bukkit.configuration.ConfigurationSection;
 import org.bukkit.entity.Firework;
@@ -26,7 +27,7 @@ public class ShowService {
         this.plugin = plugin;
     }
 
-    /** Built-in show for player at player's location (respects runtime policy). */
+    /** Built-in show for player at player's location (respects runtime policy). Returns null if started, otherwise reason. */
     public String playShow(Player player, String showId) {
         String policy = checkPolicy(player);
         if (policy != null) return policy;
@@ -43,7 +44,7 @@ public class ShowService {
         return playBuiltInAt(at, showId) != null;
     }
 
-    /** Custom show from multiple points (respects runtime policy). */
+    /** Custom show from multiple points (respects runtime policy). Returns null if started, otherwise reason. */
     public String playCustom(Player owner, DraftShow custom) {
         if (custom == null) return "Show not found.";
         if (custom.points.isEmpty()) return "Custom show has no points.";
@@ -144,12 +145,17 @@ public class ShowService {
         final int finalInterval = interval;
         final Location fixedBase = base.clone();
 
+        // START SOUND
+        playSoundSafe(fixedBase, plugin.getConfig().getString("sounds.start", ""));
+
         BukkitRunnable runnable = new BukkitRunnable() {
             int i = 0;
 
             @Override
             public void run() {
                 if (i >= total) {
+                    // END SOUND
+                    playSoundSafe(fixedBase, plugin.getConfig().getString("sounds.end", ""));
                     cancel();
                     return;
                 }
@@ -162,6 +168,9 @@ public class ShowService {
                 meta.addEffect(randomEffectFromPalette(palette));
                 meta.setPower(randInt(pMin, pMax));
                 fw.setFireworkMeta(meta);
+
+                // OPTIONAL SOUND PER FIREWORK
+                playSoundSafe(loc, plugin.getConfig().getString("sounds.each_firework", ""));
 
                 i++;
             }
@@ -188,6 +197,12 @@ public class ShowService {
         List<Location> points = new ArrayList<>();
         for (Location l : show.points) points.add(l.clone());
 
+        // start/end location for sounds
+        final Location first = points.get(0);
+
+        // START SOUND
+        playSoundSafe(first, plugin.getConfig().getString("sounds.start", ""));
+
         BukkitRunnable runnable = new BukkitRunnable() {
             int i = 0;
 
@@ -200,6 +215,8 @@ public class ShowService {
                 }
 
                 if (i >= finalTotal) {
+                    // END SOUND
+                    playSoundSafe(first, plugin.getConfig().getString("sounds.end", ""));
                     if (ownerOrNull != null) cleanup(ownerOrNull.getUniqueId());
                     cancel();
                     return;
@@ -220,6 +237,9 @@ public class ShowService {
                 meta.addEffect(randomEffectFromPalette(show.palette));
                 meta.setPower(randInt(show.powerMin, show.powerMax));
                 fw.setFireworkMeta(meta);
+
+                // OPTIONAL SOUND PER FIREWORK
+                playSoundSafe(loc, plugin.getConfig().getString("sounds.each_firework", ""));
 
                 i++;
             }
@@ -270,5 +290,23 @@ public class ShowService {
     private int randInt(int min, int max) {
         if (max < min) return min;
         return min + random.nextInt(max - min + 1);
+    }
+
+    private void playSoundSafe(Location at, String soundName) {
+        if (!plugin.getConfig().getBoolean("sounds.enabled", true)) return;
+        if (soundName == null || soundName.isBlank()) return;
+        if (at == null || at.getWorld() == null) return;
+
+        float vol = (float) plugin.getConfig().getDouble("sounds.volume", 1.0);
+        float pitch = (float) plugin.getConfig().getDouble("sounds.pitch", 1.0);
+
+        Sound s;
+        try {
+            s = Sound.valueOf(soundName.toUpperCase(java.util.Locale.ROOT));
+        } catch (IllegalArgumentException ex) {
+            return;
+        }
+
+        at.getWorld().playSound(at, s, vol, pitch);
     }
 }

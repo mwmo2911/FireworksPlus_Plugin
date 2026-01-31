@@ -17,6 +17,14 @@ gui:
   title: "&cFireworksPlus Shows"
   size: 27
 
+sounds:
+  enabled: true
+  start: "ENTITY_FIREWORK_ROCKET_LAUNCH"
+  each_firework: ""
+  end: "ENTITY_PLAYER_LEVELUP"
+  volume: 1.0
+  pitch: 1.0
+
 shows:
   Celebration:
     display: "&eCelebration"
