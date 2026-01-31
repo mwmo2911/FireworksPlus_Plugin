@@ -10,22 +10,119 @@ import org.bukkit.entity.Player;
 import org.bukkit.inventory.meta.FireworkMeta;
 import org.bukkit.plugin.java.JavaPlugin;
 import org.bukkit.scheduler.BukkitRunnable;
+import org.bukkit.scheduler.BukkitTask;
 
-import java.util.List;
-import java.util.Random;
+import java.util.*;
 
 public class ShowService {
 
     private final JavaPlugin plugin;
     private final Random random = new Random();
 
+    private final Map<UUID, BukkitTask> activeShow = new HashMap<>();
+    private final Map<UUID, Long> lastStartMs = new HashMap<>();
+
     public ShowService(JavaPlugin plugin) {
         this.plugin = plugin;
     }
 
-    public boolean playShow(Player player, String showId) {
+    /** Built-in show for player at player's location (respects runtime policy). */
+    public String playShow(Player player, String showId) {
+        String policy = checkPolicy(player);
+        if (policy != null) return policy;
+
+        Started started = playBuiltInAt(player.getLocation(), showId);
+        if (started == null) return "Show not found.";
+
+        markStarted(player, started.task());
+        return null;
+    }
+
+    /** Built-in show at location (no player policy). Used by schedules. */
+    public boolean playBuiltInScheduled(Location at, String showId) {
+        return playBuiltInAt(at, showId) != null;
+    }
+
+    /** Custom show from multiple points (respects runtime policy). */
+    public String playCustom(Player owner, DraftShow custom) {
+        if (custom == null) return "Show not found.";
+        if (custom.points.isEmpty()) return "Custom show has no points.";
+
+        String policy = checkPolicy(owner);
+        if (policy != null) return policy;
+
+        BukkitTask task = runCustomPoints(custom, owner);
+        markStarted(owner, task);
+        return null;
+    }
+
+    /** Custom show scheduled (no player policy). */
+    public boolean playCustomScheduled(DraftShow custom) {
+        if (custom == null || custom.points.isEmpty()) return false;
+        runCustomPoints(custom, null);
+        return true;
+    }
+
+    public boolean stopShow(Player player) {
+        BukkitTask task = activeShow.remove(player.getUniqueId());
+        if (task != null && !task.isCancelled()) {
+            task.cancel();
+            return true;
+        }
+        return false;
+    }
+
+    // ---------------- Policy & tracking ----------------
+
+    private String checkPolicy(Player player) {
+        int cooldownSec = plugin.getConfig().getInt("runtime.cooldown_seconds", 0);
+        boolean allowSimul = plugin.getConfig().getBoolean("runtime.allow_simultaneous_shows", false);
+        boolean cancelPrevious = plugin.getConfig().getBoolean("runtime.cancel_previous_show", true);
+
+        if (cooldownSec > 0) {
+            long now = System.currentTimeMillis();
+            long last = lastStartMs.getOrDefault(player.getUniqueId(), 0L);
+            long waitMs = cooldownSec * 1000L;
+
+            if (now - last < waitMs) {
+                long left = (waitMs - (now - last) + 999) / 1000;
+                return "Please wait " + left + "s before starting another show.";
+            }
+        }
+
+        BukkitTask existing = activeShow.get(player.getUniqueId());
+        if (existing != null && !existing.isCancelled()) {
+            if (!allowSimul) {
+                if (cancelPrevious) {
+                    existing.cancel();
+                    activeShow.remove(player.getUniqueId());
+                } else {
+                    return "You already have a show running.";
+                }
+            }
+        }
+
+        return null;
+    }
+
+    private void markStarted(Player player, BukkitTask task) {
+        activeShow.put(player.getUniqueId(), task);
+        lastStartMs.put(player.getUniqueId(), System.currentTimeMillis());
+    }
+
+    private void cleanup(UUID uuid) {
+        activeShow.remove(uuid);
+    }
+
+    // ---------------- Built-in show runner ----------------
+
+    private record Started(BukkitTask task) {}
+
+    private Started playBuiltInAt(Location base, String showId) {
+        if (base == null) return null;
+
         ConfigurationSection s = plugin.getConfig().getConfigurationSection("shows." + showId);
-        if (s == null) return false;
+        if (s == null) return null;
 
         int fireworks = s.getInt("fireworks", 30);
         int interval = s.getInt("interval_ticks", 6);
@@ -34,29 +131,30 @@ public class ShowService {
         int pMax = s.getInt("power_max", 2);
         List<String> palette = s.getStringList("palette");
 
-        // safety limits
         int minInterval = plugin.getConfig().getInt("limits.min_interval_ticks", 4);
         int maxTotal = plugin.getConfig().getInt("limits.max_fireworks_total", 250);
 
         interval = Math.max(interval, minInterval);
         fireworks = Math.min(Math.max(1, fireworks), maxTotal);
 
-        Location base = player.getLocation();
         World world = base.getWorld();
-        if (world == null) return true;
+        if (world == null) return null;
 
         final int total = fireworks;
         final int finalInterval = interval;
+        final Location fixedBase = base.clone();
 
-        new BukkitRunnable() {
+        BukkitRunnable runnable = new BukkitRunnable() {
             int i = 0;
 
             @Override
             public void run() {
-                if (!player.isOnline()) { cancel(); return; }
-                if (i >= total) { cancel(); return; }
+                if (i >= total) {
+                    cancel();
+                    return;
+                }
 
-                Location loc = base.clone().add(rand(-radius, radius), 0.2, rand(-radius, radius));
+                Location loc = fixedBase.clone().add(rand(-radius, radius), 0.2, rand(-radius, radius));
                 Firework fw = world.spawn(loc, Firework.class);
 
                 FireworkMeta meta = fw.getFireworkMeta();
@@ -67,10 +165,70 @@ public class ShowService {
 
                 i++;
             }
-        }.runTaskTimer(plugin, 0L, finalInterval);
+        };
 
-        return true;
+        BukkitTask task = runnable.runTaskTimer(plugin, 0L, finalInterval);
+        return new Started(task);
     }
+
+    // ---------------- Custom points runner ----------------
+
+    private BukkitTask runCustomPoints(DraftShow show, Player ownerOrNull) {
+        int minInterval = plugin.getConfig().getInt("limits.min_interval_ticks", 4);
+        int maxTotal = plugin.getConfig().getInt("limits.max_fireworks_total", 250);
+
+        int interval = Math.max(show.intervalTicks, minInterval);
+
+        int total = Math.max(1, (show.durationSeconds * 20) / interval);
+        total = Math.min(total, maxTotal);
+
+        final int finalTotal = total;
+        final int finalInterval = interval;
+
+        List<Location> points = new ArrayList<>();
+        for (Location l : show.points) points.add(l.clone());
+
+        BukkitRunnable runnable = new BukkitRunnable() {
+            int i = 0;
+
+            @Override
+            public void run() {
+                if (ownerOrNull != null && !ownerOrNull.isOnline()) {
+                    cleanup(ownerOrNull.getUniqueId());
+                    cancel();
+                    return;
+                }
+
+                if (i >= finalTotal) {
+                    if (ownerOrNull != null) cleanup(ownerOrNull.getUniqueId());
+                    cancel();
+                    return;
+                }
+
+                Location base = points.get(i % points.size());
+                World world = base.getWorld();
+                if (world == null) {
+                    i++;
+                    return;
+                }
+
+                Location loc = base.clone().add(rand(-show.radius, show.radius), 0.2, rand(-show.radius, show.radius));
+                Firework fw = world.spawn(loc, Firework.class);
+
+                FireworkMeta meta = fw.getFireworkMeta();
+                meta.clearEffects();
+                meta.addEffect(randomEffectFromPalette(show.palette));
+                meta.setPower(randInt(show.powerMin, show.powerMax));
+                fw.setFireworkMeta(meta);
+
+                i++;
+            }
+        };
+
+        return runnable.runTaskTimer(plugin, 0L, finalInterval);
+    }
+
+    // ---------------- Effects helpers ----------------
 
     private FireworkEffect randomEffectFromPalette(List<String> palette) {
         FireworkEffect.Type[] types = FireworkEffect.Type.values();

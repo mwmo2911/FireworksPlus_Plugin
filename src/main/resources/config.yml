@@ -3,8 +3,18 @@ limits:
   max_fireworks_total: 250
   min_interval_ticks: 4
 
+runtime:
+  cooldown_seconds: 15
+  allow_simultaneous_shows: false
+  cancel_previous_show: true
+
+scheduling:
+  enabled: true
+  poll_seconds: 20
+  datetime_format: "yyyy-MM-dd HH:mm"
+
 gui:
-  title: "&b&lFireworksPlus &7Shows"
+  title: "&cFireworksPlus Shows"
   size: 27
 
 shows:
