@@ -1,0 +1,69 @@
+limits:
+  max_duration_seconds: 60
+  max_fireworks_total: 250
+  min_interval_ticks: 4
+
+gui:
+  title: "&b&lFireworksPlus &7Shows"
+  size: 27
+
+shows:
+  Celebration:
+    display: "&eCelebration"
+    slot: 10
+    fireworks: 30
+    interval_ticks: 6
+    radius: 1.6
+    power_min: 1
+    power_max: 2
+    palette: ["#FF3B30","#FFD60A","#34C759","#0A84FF","#FFFFFF"]
+
+  Royal:
+    display: "&dRoyal"
+    slot: 12
+    fireworks: 35
+    interval_ticks: 6
+    radius: 1.8
+    power_min: 1
+    power_max: 2
+    palette: ["#BF5AF2","#FFD60A","#0A84FF","#FFFFFF"]
+
+  Chaos:
+    display: "&cChaos"
+    slot: 14
+    fireworks: 45
+    interval_ticks: 4
+    radius: 2.2
+    power_min: 1
+    power_max: 3
+    palette: ["#FF2D55","#FF9F0A","#30D158","#64D2FF","#BF5AF2"]
+
+  Neon:
+    display: "&bNeon"
+    slot: 16
+    fireworks: 35
+    interval_ticks: 5
+    radius: 1.7
+    power_min: 1
+    power_max: 2
+    palette: ["#30D158","#64D2FF","#0A84FF","#FF2D55"]
+
+  Emerald:
+    display: "&aEmerald"
+    slot: 19
+    fireworks: 30
+    interval_ticks: 6
+    radius: 1.5
+    power_min: 1
+    power_max: 2
+    palette: ["#00C853","#1DE9B6","#00E676","#A7FFEB","#FFFFFF"]
+
+  Sunset:
+    display: "&6Sunset"
+    slot: 21
+    fireworks: 35
+    interval_ticks: 6
+    radius: 1.8
+    power_min: 1
+    power_max: 2
+    palette: ["#FF3B30","#FF9F0A","#FFD60A","#FF2D55","#BF5AF2"]

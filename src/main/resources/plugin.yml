@@ -1,0 +1,18 @@
+name: FireworksPlus
+version: 1.0.0
+main: com.fireworksplus.plugin.FireworksPlus
+api-version: "1.13"
+
+commands:
+  fw:
+    description: FireworksPlus main command
+    usage: /fw
+
+permissions:
+  fireworksplus.use:
+    description: Allows using the plugin
+    default: op
+
+  fireworksplus.admin:
+    description: Admin permissions (reload, schedule, play for others)
+    default: op
