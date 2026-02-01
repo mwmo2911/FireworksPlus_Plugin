@@ -13,7 +13,18 @@ permissions:
     description: Allows using the plugin
     default: op
 
-  fireworksplus.admin:
-    description: Admin permissions (reload, schedule, play for others)
+  fireworksplus.admin.schedule:
+    description: Allows scheduling and listing schedules
     default: op
 
+  fireworksplus.admin.delete:
+    description: Allows deleting custom shows
+    default: op
+
+  fireworksplus.admin.reload:
+    description: Allows reloading config and data files
+    default: op
+
+  fireworksplus.*:
+    description: Grants all FireworksPlus permissions
+    default: op

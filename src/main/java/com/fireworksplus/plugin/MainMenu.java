@@ -65,13 +65,15 @@ public class MainMenu implements Listener {
                 ChatColor.AQUA + "" + ChatColor.BOLD + "Builder",
                 List.of(ChatColor.GRAY + "Create custom shows")));
 
-        // Optional admin buttons
-        if (p.hasPermission("fireworksplus.admin")) {
+        // Optional staff buttons
+        if (hasPermission(p, "fireworksplus.admin.reload")) {
             int reloadSlot = plugin.getConfig().getInt("main_gui.reload_slot", 22);
             inv.setItem(reloadSlot, item(Material.REDSTONE,
                     ChatColor.RED + "" + ChatColor.BOLD + "Reload",
                     List.of(ChatColor.GRAY + "Reload config and data files")));
+        }
 
+        if (hasPermission(p, "fireworksplus.admin.schedule")) {
             int schedulesSlot = plugin.getConfig().getInt("main_gui.schedules_slot", 24);
             inv.setItem(schedulesSlot, item(Material.PAPER,
                     ChatColor.AQUA + "" + ChatColor.BOLD + "Schedules",
@@ -110,7 +112,7 @@ public class MainMenu implements Listener {
             return;
         }
 
-        if (raw == reloadSlot && p.hasPermission("fireworksplus.admin")) {
+        if (raw == reloadSlot && hasPermission(p, "fireworksplus.admin.reload")) {
             plugin.reloadConfig();
             storage.reload();
             scheduleManager.reload();
@@ -119,11 +121,15 @@ public class MainMenu implements Listener {
             return;
         }
 
-        if (raw == schedulesSlot && p.hasPermission("fireworksplus.admin")) {
+        if (raw == schedulesSlot && hasPermission(p, "fireworksplus.admin.schedule")) {
             if (scheduleMenu != null) {
                 scheduleMenu.open(p);
             }
         }
+    }
+
+    private boolean hasPermission(Player p, String node) {
+        return p.hasPermission("fireworksplus.*") || p.hasPermission(node);
     }
 
     private ItemStack item(Material mat, String name, List<String> lore) {

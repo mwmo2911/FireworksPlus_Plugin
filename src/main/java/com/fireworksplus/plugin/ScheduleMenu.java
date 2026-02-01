@@ -36,6 +36,10 @@ public class ScheduleMenu implements Listener {
     }
 
     public void open(Player p) {
+        if (!hasPermission(p, "fireworksplus.admin.schedule")) {
+            p.sendMessage(ChatColor.RED + "No permission.");
+            return;
+        }
         String title = color(plugin.getConfig().getString("gui.schedules.title", "&bSchedules"));
         int size = clampSize(plugin.getConfig().getInt("gui.schedules.size", 27));
 
@@ -91,6 +95,11 @@ public class ScheduleMenu implements Listener {
         String scheduleId = readScheduleId(clicked);
         if (scheduleId == null || scheduleId.isBlank()) return;
 
+        if (!hasPermission(p, "fireworksplus.admin.schedule")) {
+            p.sendMessage(ChatColor.RED + "No permission.");
+            return;
+        }
+
         boolean removed = scheduleManager.removeSchedule(scheduleId);
         if (removed) {
             p.sendMessage(ChatColor.GREEN + "Schedule removed: " + ChatColor.WHITE + scheduleId);
@@ -98,6 +107,10 @@ public class ScheduleMenu implements Listener {
         } else {
             p.sendMessage(ChatColor.RED + "Schedule not found: " + ChatColor.WHITE + scheduleId);
         }
+    }
+
+    private boolean hasPermission(Player p, String node) {
+        return p.hasPermission("fireworksplus.*") || p.hasPermission(node);
     }
 
     private ItemStack scheduleItem(String entry) {

@@ -47,7 +47,7 @@ public class FwCommand implements CommandExecutor {
             return true;
         }
 
-        if (!player.hasPermission("fireworksplus.use")) {
+        if (!hasPermission(player, "fireworksplus.use")) {
             player.sendMessage(ChatColor.RED + "No permission.");
             return true;
         }
@@ -86,7 +86,7 @@ public class FwCommand implements CommandExecutor {
            /fw reload
            ======================= */
         if ("reload".equalsIgnoreCase(sub)) {
-            if (!player.hasPermission("fireworksplus.admin")) {
+            if (!hasPermission(player, "fireworksplus.admin.reload")) {
                 player.sendMessage(ChatColor.RED + "No permission.");
                 return true;
             }
@@ -180,7 +180,7 @@ public class FwCommand implements CommandExecutor {
            /fw schedule <show> <yyyy-MM-dd> <HH:mm>
            ======================= */
         if ("schedule".equalsIgnoreCase(sub)) {
-            if (!player.hasPermission("fireworksplus.admin")) {
+            if (!hasPermission(player, "fireworksplus.admin.schedule")) {
                 player.sendMessage(ChatColor.RED + "No permission.");
                 return true;
             }
@@ -210,7 +210,7 @@ public class FwCommand implements CommandExecutor {
            /fw unschedule <id>
            ======================= */
         if ("unschedule".equalsIgnoreCase(sub)) {
-            if (!player.hasPermission("fireworksplus.admin")) {
+            if (!hasPermission(player, "fireworksplus.admin.schedule")) {
                 player.sendMessage(ChatColor.RED + "No permission.");
                 return true;
             }
@@ -232,7 +232,7 @@ public class FwCommand implements CommandExecutor {
            /fw schedules
            ======================= */
         if ("schedules".equalsIgnoreCase(sub)) {
-            if (!player.hasPermission("fireworksplus.admin")) {
+            if (!hasPermission(player, "fireworksplus.admin.schedule")) {
                 player.sendMessage(ChatColor.RED + "No permission.");
                 return true;
             }
@@ -252,7 +252,7 @@ public class FwCommand implements CommandExecutor {
            /fw delete <show>
            ======================= */
         if ("delete".equalsIgnoreCase(sub)) {
-            if (!player.hasPermission("fireworksplus.admin")) {
+            if (!hasPermission(player, "fireworksplus.admin.delete")) {
                 player.sendMessage(ChatColor.RED + "No permission.");
                 return true;
             }
@@ -313,11 +313,15 @@ public class FwCommand implements CommandExecutor {
         p.sendMessage(ChatColor.YELLOW + "/fw list" + ChatColor.WHITE + " - List all shows");
         p.sendMessage(ChatColor.YELLOW + "/fw stop" + ChatColor.WHITE + " - Stop the running show");
         p.sendMessage(ChatColor.YELLOW + "/fw version" + ChatColor.WHITE + " - Show plugin version");
-        if (p.hasPermission("fireworksplus.admin")) {
+        if (hasPermission(p, "fireworksplus.admin.schedule")) {
             p.sendMessage(ChatColor.YELLOW + "/fw schedule <show> <yyyy-MM-dd> <HH:mm>" + ChatColor.WHITE + " - Schedule a show");
             p.sendMessage(ChatColor.YELLOW + "/fw schedules" + ChatColor.WHITE + " - List schedules");
             p.sendMessage(ChatColor.YELLOW + "/fw unschedule <id>" + ChatColor.WHITE + " - Remove a schedule");
+        }
+        if (hasPermission(p, "fireworksplus.admin.delete")) {
             p.sendMessage(ChatColor.YELLOW + "/fw delete <show>" + ChatColor.WHITE + " - Delete a custom show");
+        }
+        if (hasPermission(p, "fireworksplus.admin.reload")) {
             p.sendMessage(ChatColor.YELLOW + "/fw reload" + ChatColor.WHITE + " - Reload config and data files");
         }
     }
@@ -433,5 +437,9 @@ public class FwCommand implements CommandExecutor {
                 .replace(" ", "")
                 .replace("_", "")
                 .replace("-", "");
+    }
+
+    private boolean hasPermission(Player p, String node) {
+        return p.hasPermission("fireworksplus.*") || p.hasPermission(node);
     }
 }
