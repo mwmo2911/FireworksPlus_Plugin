@@ -1,38 +1,35 @@
 ---
 name: Bug report
-about: Create a report to help us improve
+about: Create a report to help improve FireworksPlus
 title: ''
 labels: ''
-assignees: ''
+assignees: mwmo2911
 
 ---
 
-**Describe the bug**
+## Describe the bug
 A clear and concise description of what the bug is.
+> Example: Custom shows cannot be deleted from the GUI.
 
-**To Reproduce**
-Steps to reproduce the behavior:
-1. Go to '...'
-2. Click on '....'
-3. Scroll down to '....'
-4. See error
-
-**Expected behavior**
+## Expected behavior
 A clear and concise description of what you expected to happen.
+> Example: The show should be removed from the menu.
 
-**Screenshots**
+## Actual behavior
+What actually happened instead?
+> Example: Nothing happens and no message is shown.
+
+## Screenshots
 If applicable, add screenshots to help explain your problem.
 
-**Desktop (please complete the following information):**
- - OS: [e.g. iOS]
- - Browser [e.g. chrome, safari]
- - Version [e.g. 22]
+## Server Information
+Please complete:
+- **Server software:** (Paper / Spigot / Purpur / etc.)
+- **Server version:** (e.g. 1.20.4)
+- **Plugin version:** (e.g. v1.0.3)
+- **Java version:** (e.g. Java 17)
 
-**Smartphone (please complete the following information):**
- - Device: [e.g. iPhone6]
- - OS: [e.g. iOS8.1]
- - Browser [e.g. stock browser, safari]
- - Version [e.g. 22]
+## Console Errors / Logs
+Paste any console errors:
 
-**Additional context**
-Add any other context about the problem here.
+```yaml
