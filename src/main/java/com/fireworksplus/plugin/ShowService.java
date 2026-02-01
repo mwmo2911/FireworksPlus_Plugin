@@ -240,7 +240,7 @@ public class ShowService {
 
                 FireworkMeta meta = fw.getFireworkMeta();
                 meta.clearEffects();
-                meta.addEffect(randomEffectFromPalette(show.palette));
+                meta.addEffect(effectFromPalette(show.palette, show.fireworkTypes));
                 meta.setPower(randInt(show.powerMin, show.powerMax));
                 fw.setFireworkMeta(meta);
 
@@ -257,9 +257,11 @@ public class ShowService {
     // ---------------- Effects helpers ----------------
 
     private FireworkEffect randomEffectFromPalette(List<String> palette) {
-        FireworkEffect.Type[] types = FireworkEffect.Type.values();
-        FireworkEffect.Type type = types[random.nextInt(types.length)];
+        return effectFromPalette(palette, null);
+    }
 
+    private FireworkEffect effectFromPalette(List<String> palette, List<String> typeNames) {
+        FireworkEffect.Type type = pickType(typeNames);
         Color main = paletteColor(palette);
         Color fade = paletteColor(palette);
 
@@ -270,6 +272,21 @@ public class ShowService {
                 .trail(random.nextBoolean())
                 .flicker(random.nextBoolean())
                 .build();
+    }
+
+    private FireworkEffect.Type pickType(List<String> typeNames) {
+        if (typeNames != null && !typeNames.isEmpty()) {
+            String raw = typeNames.get(random.nextInt(typeNames.size()));
+            if (raw != null) {
+                try {
+                    return FireworkEffect.Type.valueOf(raw.toUpperCase());
+                } catch (IllegalArgumentException ignored) {
+                    // fall through to random
+                }
+            }
+        }
+        FireworkEffect.Type[] types = FireworkEffect.Type.values();
+        return types[random.nextInt(types.length)];
     }
 
     private Color paletteColor(List<String> palette) {

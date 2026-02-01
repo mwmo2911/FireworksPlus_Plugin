@@ -15,6 +15,7 @@ public class FireworksPlus extends JavaPlugin {
     private ShowMenu showMenu;
     private BuilderMenu builderMenu;
     private BuilderColorsMenu builderColorsMenu;
+    private BuilderTypesMenu builderTypesMenu;
     private MainMenu mainMenu;
     private ScheduleMenu scheduleMenu;
 
@@ -38,9 +39,11 @@ public class FireworksPlus extends JavaPlugin {
         this.builderMenu = new BuilderMenu(this, builderManager, showStorage);
         this.builderChatListener = new BuilderChatListener(this, builderManager, builderMenu);
         this.builderColorsMenu = new BuilderColorsMenu(this, builderManager, builderMenu);
+        this.builderTypesMenu = new BuilderTypesMenu(this, builderManager, builderMenu);
 
         builderMenu.setChatListener(builderChatListener);
         builderMenu.setColorsMenu(builderColorsMenu);
+        builderMenu.setTypesMenu(builderTypesMenu);
 
         // ---------------- Show menu + Main menu ----------------
         this.showMenu = new ShowMenu(this, showService, showStorage, builderMenu);
@@ -56,6 +59,7 @@ public class FireworksPlus extends JavaPlugin {
         Bukkit.getPluginManager().registerEvents(mainMenu, this);
         Bukkit.getPluginManager().registerEvents(showMenu, this);
         Bukkit.getPluginManager().registerEvents(builderMenu, this);
+        Bukkit.getPluginManager().registerEvents(builderTypesMenu, this);
         Bukkit.getPluginManager().registerEvents(scheduleMenu, this);
         Bukkit.getPluginManager().registerEvents(builderColorsMenu, this);
         Bukkit.getPluginManager().registerEvents(builderChatListener, this);

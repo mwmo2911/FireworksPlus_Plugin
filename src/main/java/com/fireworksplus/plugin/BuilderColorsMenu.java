@@ -22,7 +22,7 @@ import java.util.List;
  */
 public class BuilderColorsMenu implements Listener {
 
-    private static final String TITLE = ChatColor.DARK_AQUA + "" + ChatColor.BOLD + "Palette Editor";
+    private static final String TITLE = ChatColor.DARK_AQUA + "" + "Palette Editor";
 
     private final JavaPlugin plugin;
     private final BuilderManager builderManager;
@@ -48,9 +48,9 @@ public class BuilderColorsMenu implements Listener {
         preset(inv, 15, Material.BLUE_DYE,       ChatColor.BLUE + "Blue",          "#3355ff", s);
         preset(inv, 16, Material.PURPLE_DYE,     ChatColor.DARK_PURPLE + "Purple", "#aa33ff", s);
 
-        preset(inv, 19, Material.WHITE_DYE,      ChatColor.WHITE + "White",        "#ffffff", s);
-        preset(inv, 20, Material.GRAY_DYE,       ChatColor.GRAY + "Gray",          "#888888", s);
-        preset(inv, 21, Material.BLACK_DYE,      ChatColor.DARK_GRAY + "Black",    "#111111", s);
+        preset(inv, 3, Material.WHITE_DYE,      ChatColor.WHITE + "White",        "#ffffff", s);
+        preset(inv, 4, Material.GRAY_DYE,       ChatColor.GRAY + "Gray",          "#888888", s);
+        preset(inv, 5, Material.BLACK_DYE,      ChatColor.DARK_GRAY + "Black",    "#111111", s);
 
         inv.setItem(22, button(Material.BOOK, ChatColor.AQUA + "Current Palette",
                 List.of(

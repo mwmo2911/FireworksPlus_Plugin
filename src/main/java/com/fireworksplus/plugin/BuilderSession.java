@@ -22,5 +22,7 @@ public class BuilderSession {
     public int powerMin = 1;
     public int powerMax = 2;
 
+    public List<String> fireworkTypes = new ArrayList<>(List.of(org.bukkit.FireworkEffect.Type.BALL.name()));
+
     public List<String> palette = new ArrayList<>();
 }

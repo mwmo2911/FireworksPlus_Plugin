@@ -364,6 +364,7 @@ public class FwCommand implements CommandExecutor {
         player.sendMessage(ChatColor.GRAY + "Interval: " + ChatColor.WHITE + custom.intervalTicks + " ticks");
         player.sendMessage(ChatColor.GRAY + "Radius: " + ChatColor.WHITE + custom.radius);
         player.sendMessage(ChatColor.GRAY + "Power: " + ChatColor.WHITE + custom.powerMin + "-" + custom.powerMax);
+        player.sendMessage(ChatColor.GRAY + "Type: " + ChatColor.WHITE + formatTypes(custom.fireworkTypes));
         player.sendMessage(ChatColor.GRAY + "Points: " + ChatColor.WHITE + custom.points.size());
         if (!custom.palette.isEmpty()) {
             player.sendMessage(ChatColor.GRAY + "Palette: " + ChatColor.WHITE + String.join(", ", custom.palette));
@@ -394,6 +395,12 @@ public class FwCommand implements CommandExecutor {
         if (!palette.isEmpty()) {
             player.sendMessage(ChatColor.GRAY + "Palette: " + ChatColor.WHITE + String.join(", ", palette));
         }
+    }
+
+    private String formatTypes(List<String> types) {
+        if (types == null || types.isEmpty()) return "Random";
+        if (types.size() == 1) return types.get(0).replace("_", " ");
+        return String.join(", ", types.stream().map(t -> t.replace("_", " ")).collect(java.util.stream.Collectors.toList()));
     }
 
     private String resolveShowId(String input) {

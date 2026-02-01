@@ -11,6 +11,10 @@ import org.bukkit.entity.Player;
 import java.io.File;
 import java.io.IOException;
 import java.util.*;
+import java.util.ArrayList;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
 
 public class ShowStorage {
 
@@ -69,6 +73,7 @@ public class ShowStorage {
         yaml.set(base + ".radius", d.radius);
         yaml.set(base + ".powerMin", d.powerMin);
         yaml.set(base + ".powerMax", d.powerMax);
+        yaml.set(base + ".effectTypes", d.fireworkTypes);
         yaml.set(base + ".palette", d.palette);
 
         List<Map<String, Object>> pts = new ArrayList<>();
@@ -98,6 +103,12 @@ public class ShowStorage {
         d.radius = yaml.getDouble(base + ".radius", 1.6);
         d.powerMin = yaml.getInt(base + ".powerMin", 1);
         d.powerMax = yaml.getInt(base + ".powerMax", 2);
+        List<String> types = yaml.getStringList(base + ".effectTypes");
+        if (types == null || types.isEmpty()) {
+            String legacy = yaml.getString(base + ".effectType", org.bukkit.FireworkEffect.Type.BALL.name());
+            types = new ArrayList<>(List.of(legacy));
+        }
+        d.fireworkTypes = new ArrayList<>(types);
         d.palette = yaml.getStringList(base + ".palette");
 
         List<?> list = yaml.getList(base + ".points", List.of());
