@@ -24,7 +24,14 @@ public class ShowStorage {
         reload();
     }
 
-    public boolean deleteCustomShow(String name) {
+    public boolean deleteCustomShow(String idOrName) {
+        String id = normalizeId(idOrName);
+        String base = "custom." + id;
+
+        if (!yaml.contains(base)) return false;
+
+        yaml.set(base, null);   // removes the entire section
+        saveFile();
         return true;
     }
 

@@ -4,7 +4,6 @@ import org.bukkit.Bukkit;
 import org.bukkit.ChatColor;
 import org.bukkit.Material;
 import org.bukkit.NamespacedKey;
-import org.bukkit.command.CommandSender;
 import org.bukkit.configuration.ConfigurationSection;
 import org.bukkit.entity.Player;
 import org.bukkit.event.EventHandler;
@@ -20,7 +19,6 @@ import org.bukkit.plugin.java.JavaPlugin;
 import java.util.ArrayList;
 import java.util.Comparator;
 import java.util.List;
-import java.util.Locale;
 
 public class ShowMenu implements Listener {
 
@@ -28,6 +26,12 @@ public class ShowMenu implements Listener {
     private final ShowService shows;
     private final ShowStorage storage;
     private final BuilderMenu builderMenu;
+
+    // Optional: set this if you have a main menu GUI
+    private MainMenu mainMenu;
+    public void setMainMenu(MainMenu mainMenu) {
+        this.mainMenu = mainMenu;
+    }
 
     private final NamespacedKey keyShowId;
 
@@ -40,19 +44,30 @@ public class ShowMenu implements Listener {
     }
 
     public void open(Player p) {
-        String title = color(plugin.getConfig().getString("gui.title", "&cFireworksPlus Shows"));
+        String title = color(plugin.getConfig().getString("gui.title", "&cShows"));
         int size = plugin.getConfig().getInt("gui.size", 27);
         size = clampSize(size);
 
         Inventory inv = Bukkit.createInventory(p, size, title);
 
-        // Builder button (optional)
         int builderSlot = plugin.getConfig().getInt("gui.builder_slot", 22);
+        int backSlot = 26;
+
+        // Builder button (optional)
         if (builderSlot >= 0 && builderSlot < inv.getSize()) {
             inv.setItem(builderSlot, makeBuilderButton());
         }
 
-        // Fill show items (skip builder slot)
+        // Back button
+        if (backSlot >= 0 && backSlot < inv.getSize()) {
+            inv.setItem(backSlot, button(
+                    Material.ARROW,
+                    ChatColor.AQUA + "Back",
+                    List.of(ChatColor.GRAY + "Return to main menu")
+            ));
+        }
+
+        // Fill show items (skip builder slot + back slot)
         List<String> showIds = new ArrayList<>();
         ConfigurationSection sec = plugin.getConfig().getConfigurationSection("shows");
         if (sec != null) showIds.addAll(sec.getKeys(false));
@@ -62,8 +77,7 @@ public class ShowMenu implements Listener {
 
         int slot = 0;
         for (String id : showIds) {
-            // avoid overwriting builder slot
-            while (slot < inv.getSize() && slot == builderSlot) slot++;
+            while (slot < inv.getSize() && (slot == builderSlot || slot == backSlot)) slot++;
             if (slot >= inv.getSize()) break;
 
             inv.setItem(slot, makeShowItem(id));
@@ -77,7 +91,7 @@ public class ShowMenu implements Listener {
     public void onClick(InventoryClickEvent e) {
         if (!(e.getWhoClicked() instanceof Player p)) return;
 
-        String title = color(plugin.getConfig().getString("gui.title", "&cFireworksPlus Shows"));
+        String title = color(plugin.getConfig().getString("gui.title", "&cShows"));
         if (!e.getView().getTitle().equals(title)) return;
 
         e.setCancelled(true);
@@ -85,10 +99,33 @@ public class ShowMenu implements Listener {
         int raw = e.getRawSlot();
         if (raw < 0 || raw >= e.getInventory().getSize()) return;
 
-        if (e.isShiftClick() && e.getClick().isRightClick()) {
+        int builderSlot = plugin.getConfig().getInt("gui.builder_slot", 22);
+        int backSlot = 26;
 
-            String showId = readShowId(e.getCurrentItem());
+        // Back button
+        if (raw == backSlot) {
+            p.closeInventory();
+            Bukkit.getScheduler().runTask(plugin, () -> {
+                if (mainMenu != null) {
+                    mainMenu.open(p);
+                }
+            });
+            return;
+        }
+
+        // Delete custom show (Shift + Right)
+        if (e.isShiftClick() && e.getClick().isRightClick()) {
+            ItemStack cur = e.getCurrentItem();
+            if (cur == null || cur.getType() == Material.AIR) return;
+
+            String showId = readShowId(cur);
             if (showId == null) return;
+
+            // only allow deleting CUSTOM shows
+            if (plugin.getConfig().isConfigurationSection("shows." + showId)) {
+                p.sendMessage(ChatColor.RED + "You cannot delete built-in shows.");
+                return;
+            }
 
             if (!p.hasPermission("fireworksplus.admin")) {
                 p.sendMessage(ChatColor.RED + "No permission.");
@@ -98,18 +135,13 @@ public class ShowMenu implements Listener {
             boolean ok = storage.deleteCustomShow(showId);
 
             if (ok) {
-                p.sendMessage(ChatColor.GREEN + "Deleted custom show: "
-                        + ChatColor.WHITE + showId);
-                open(p); // refresh
+                p.sendMessage(ChatColor.GREEN + "Deleted custom show: " + ChatColor.WHITE + showId);
+                open(p);
             } else {
-                p.sendMessage(ChatColor.RED + "Failed to delete: "
-                        + ChatColor.WHITE + showId);
+                p.sendMessage(ChatColor.RED + "Custom show not found: " + ChatColor.WHITE + showId);
             }
-
             return;
         }
-
-        int builderSlot = plugin.getConfig().getInt("gui.builder_slot", 22);
 
         // Builder button
         if (raw == builderSlot) {
@@ -130,7 +162,6 @@ public class ShowMenu implements Listener {
         String showId = readShowId(clicked);
         if (showId == null || showId.isBlank()) return;
 
-        // If it's a built-in show -> playShow; otherwise custom
         boolean isBuiltIn = plugin.getConfig().isConfigurationSection("shows." + showId);
 
         if (isBuiltIn) {
@@ -148,9 +179,7 @@ public class ShowMenu implements Listener {
         ItemMeta meta = it.getItemMeta();
         if (meta != null) {
             meta.setDisplayName(ChatColor.AQUA + "" + ChatColor.BOLD + "Show Builder");
-            meta.setLore(List.of(
-                    ChatColor.GRAY + "Create a custom show via GUI"
-                    ));
+            meta.setLore(List.of(ChatColor.GRAY + "Create a custom show via GUI"));
             it.setItemMeta(meta);
         }
         return it;
@@ -172,6 +201,7 @@ public class ShowMenu implements Listener {
             lore.add(ChatColor.GRAY + "Type: " + ChatColor.WHITE + "Custom");
             lore.add(ChatColor.GRAY + "ID: " + ChatColor.WHITE + showId);
             lore.add(ChatColor.DARK_GRAY + "Click to play");
+            lore.add(ChatColor.DARK_GRAY + "Shift+Right: delete");
         }
 
         Material mat = builtIn ? Material.FIREWORK_STAR : Material.FIREWORK_ROCKET;
@@ -191,6 +221,17 @@ public class ShowMenu implements Listener {
         return it;
     }
 
+    private ItemStack button(Material m, String name, List<String> lore) {
+        ItemStack it = new ItemStack(m);
+        ItemMeta meta = it.getItemMeta();
+        if (meta != null) {
+            meta.setDisplayName(name);
+            meta.setLore(lore);
+            it.setItemMeta(meta);
+        }
+        return it;
+    }
+
     private String readShowId(ItemStack it) {
         ItemMeta meta = it.getItemMeta();
         if (meta == null) return null;
@@ -205,7 +246,6 @@ public class ShowMenu implements Listener {
     }
 
     private int clampSize(int size) {
-        // Bukkit inventories are between 9 and 54
         int s = Math.max(9, Math.min(54, size));
         return ((s + 8) / 9) * 9;
     }

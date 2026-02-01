@@ -100,7 +100,7 @@ public class BuilderMenu implements Listener {
                         ChatColor.DARK_GRAY + "Requires: name + 1 point")));
 
         inv.setItem(26, button(Material.ARROW, ChatColor.AQUA + "Back",
-                List.of(ChatColor.GRAY + "Return to shows menu")));
+                List.of(ChatColor.GRAY + "Return to main menu")));
 
         p.openInventory(inv);
     }
@@ -129,8 +129,10 @@ public class BuilderMenu implements Listener {
         BuilderSession s = builderManager.getOrCreate(p);
 
         if (slot == 26) { // back
-            if (showMenu != null) showMenu.open(p);
-            else p.closeInventory();
+            p.closeInventory();
+            if (showMenu != null) {
+                Bukkit.getScheduler().runTask(plugin, () -> showMenu.open(p));
+            }
             return;
         }
 

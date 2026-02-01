@@ -12,11 +12,13 @@ public class FireworksPlus extends JavaPlugin {
     private ScheduleManager scheduleManager;
 
     private ShowMenu showMenu;
+    private MainMenu mainMenu;
 
     private BuilderManager builderManager;
     private BuilderMenu builderMenu;
     private BuilderChatListener builderChatListener;
     private BuilderColorsMenu builderColorsMenu;
+    public MainMenu getMainMenu() { return mainMenu; }
 
     @Override
     public void onEnable() {
@@ -38,12 +40,14 @@ public class FireworksPlus extends JavaPlugin {
 
         // Main GUI
         this.showMenu = new ShowMenu(this, showService, showStorage, builderMenu);
+        this.mainMenu = new MainMenu(this, showMenu, builderMenu);
 
         // Register listeners
         Bukkit.getPluginManager().registerEvents(showMenu, this);
         Bukkit.getPluginManager().registerEvents(builderMenu, this);
         Bukkit.getPluginManager().registerEvents(builderChatListener, this);
         Bukkit.getPluginManager().registerEvents(builderColorsMenu, this);
+        Bukkit.getPluginManager().registerEvents(mainMenu, this);
 
         // Commands (INSIDE onEnable)
         PluginCommand cmd = getCommand("fw");

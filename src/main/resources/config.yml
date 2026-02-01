@@ -13,10 +13,12 @@ scheduling:
   poll_seconds: 20
   datetime_format: "yyyy-MM-dd HH:mm"
 
-gui:
-  title: "&cFireworksPlus Shows"
+main_gui:
+  title: "&cFireworksPlus"
   size: 27
-  builder_slot: 22
+  shows_slot: 12
+  builder_slot: 14
+  reload_slot: 22
 
 sounds:
   enabled: true

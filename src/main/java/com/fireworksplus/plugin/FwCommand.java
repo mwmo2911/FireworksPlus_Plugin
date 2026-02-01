@@ -39,7 +39,7 @@ public class FwCommand implements CommandExecutor {
         }
 
         if (args.length == 0) {
-            menu.open(player);
+            plugin.getMainMenu().open(player);
             return true;
         }
 
@@ -63,23 +63,23 @@ public class FwCommand implements CommandExecutor {
         }
 
         // /fw delete <name>
-        if (args.length >= 2 && args[0].equalsIgnoreCase("delete")) {
-            if (!(sender instanceof Player p)) {
-                sender.sendMessage(ChatColor.RED + "This command can only be used in-game.");
+        if (sub.equalsIgnoreCase("delete")) {
+            if (!player.hasPermission("fireworksplus.admin")) {
+                player.sendMessage(ChatColor.RED + "No permission.");
                 return true;
             }
-            if (!p.hasPermission("fireworksplus.admin")) {
-                p.sendMessage(ChatColor.RED + "No permission.");
+            if (args.length != 2) {
+                player.sendMessage(ChatColor.RED + "Usage: " + ChatColor.WHITE + "/fw delete <name>");
                 return true;
             }
 
             String name = args[1];
-
             boolean ok = storage.deleteCustomShow(name);
+
             if (ok) {
-                p.sendMessage(ChatColor.GREEN + "Deleted custom show: " + ChatColor.WHITE + name);
+                player.sendMessage(ChatColor.GREEN + "Deleted custom show: " + ChatColor.WHITE + ShowStorage.normalizeId(name));
             } else {
-                p.sendMessage(ChatColor.RED + "Custom show not found: " + ChatColor.WHITE + name);
+                player.sendMessage(ChatColor.RED + "Custom show not found: " + ChatColor.WHITE + name);
             }
             return true;
         }
@@ -314,6 +314,7 @@ public class FwCommand implements CommandExecutor {
 
     private void sendUsage(Player player) {
         player.sendMessage(ChatColor.AQUA + "Usage:");
+        player.sendMessage(ChatColor.WHITE + "/fw help" + ChatColor.AQUA + " - open help menu");
         player.sendMessage(ChatColor.WHITE + "/fw" + ChatColor.AQUA + " - open show menu");
         player.sendMessage(ChatColor.WHITE + "/fw play <show>" + ChatColor.AQUA + " - start a show");
         player.sendMessage(ChatColor.WHITE + "/fw list" + ChatColor.AQUA + " - list all shows");
@@ -331,6 +332,7 @@ public class FwCommand implements CommandExecutor {
         player.sendMessage(ChatColor.WHITE + "/fw list" + ChatColor.AQUA + " - list all shows");
         player.sendMessage(ChatColor.WHITE + "/fw stop" + ChatColor.AQUA + " - stop your current show");
         player.sendMessage(ChatColor.WHITE + "/fw create <name>" + ChatColor.AQUA + " - create custom show draft");
+        player.sendMessage(ChatColor.WHITE + "/fw delete <name>" + ChatColor.AQUA + " - delete custom show draft");
         player.sendMessage(ChatColor.WHITE + "/fw addpoint" + ChatColor.AQUA + " - add point to draft (multiple)");
         player.sendMessage(ChatColor.WHITE + "/fw duration <sec>" + ChatColor.AQUA + " - set draft duration");
         player.sendMessage(ChatColor.WHITE + "/fw save" + ChatColor.AQUA + " - save draft to shows.yml");
