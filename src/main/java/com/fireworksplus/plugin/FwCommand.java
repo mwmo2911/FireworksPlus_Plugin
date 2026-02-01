@@ -64,6 +64,14 @@ public class FwCommand implements CommandExecutor {
         }
 
         /* =======================
+           /fw help
+           ======================= */
+        if (sub.equals("help")) {
+            sendHelp(player);
+            return true;
+        }
+
+        /* =======================
            /fw stop
            ======================= */
         if (sub.equals("stop")) {
@@ -94,49 +102,34 @@ public class FwCommand implements CommandExecutor {
            fallback
            ======================= */
         player.sendMessage(ChatColor.RED + "Unknown subcommand.");
-        player.sendMessage(ChatColor.GRAY + "Use: /fw, /fw version, /fw stop");
+        sendHelp(player);
         return true;
     }
 
     /* =====================================================
-       VERSION BOX (fixed alignment, colorful border)
+       VERSION TEXT
        ===================================================== */
     private void sendVersionBox(Player p) {
-        String border =
-                ChatColor.AQUA + "┌" +
-                        ChatColor.RED + "─" +
-                        ChatColor.YELLOW + "─" +
-                        ChatColor.GREEN + "─" +
-                        ChatColor.AQUA + "─" +
-                        ChatColor.LIGHT_PURPLE + "─" +
-                        ChatColor.AQUA + "┐";
-
-        String empty =
-                ChatColor.AQUA + "│" +
-                        ChatColor.GOLD + "                   " +
-                        ChatColor.AQUA + "│";
-
         String line1 =
-                ChatColor.AQUA + "│ " +
-                        ChatColor.GOLD + "FireworksPlus " +
-                        ChatColor.YELLOW + "v" + plugin.getDescription().getVersion() +
-                        ChatColor.GOLD + "        " +
-                        ChatColor.AQUA + "│";
+                ChatColor.GOLD + "FireworksPlus " +
+                        ChatColor.YELLOW + "v" + plugin.getDescription().getVersion();
 
         String line2 =
-                ChatColor.AQUA + "│ " +
-                        ChatColor.GOLD + "Created by: " +
-                        ChatColor.YELLOW + "mwmo2911" +
-                        ChatColor.GOLD + "     " +
-                        ChatColor.AQUA + "│";
+                ChatColor.GOLD + "Created by: " +
+                        ChatColor.YELLOW + "mwmo2911";
 
-        String bottom = ChatColor.AQUA + "└───────────────┘";
-
-        p.sendMessage(border);
-        p.sendMessage(empty);
         p.sendMessage(line1);
         p.sendMessage(line2);
-        p.sendMessage(empty);
-        p.sendMessage(bottom);
+    }
+
+    private void sendHelp(Player p) {
+        p.sendMessage(ChatColor.GRAY + "Commands:");
+        p.sendMessage(ChatColor.YELLOW + "/fw" + ChatColor.WHITE + " - Open the GUI");
+        p.sendMessage(ChatColor.YELLOW + "/fw help" + ChatColor.WHITE + " - Show this help list");
+        p.sendMessage(ChatColor.YELLOW + "/fw version" + ChatColor.WHITE + " - Show plugin version");
+        p.sendMessage(ChatColor.YELLOW + "/fw stop" + ChatColor.WHITE + " - Stop the running show");
+        if (p.hasPermission("fireworksplus.admin")) {
+            p.sendMessage(ChatColor.YELLOW + "/fw delete <id>" + ChatColor.WHITE + " - Delete a custom show");
+        }
     }
 }
