@@ -1,24 +1,30 @@
 package com.fireworksplus.plugin;
 
 import org.bukkit.ChatColor;
-import org.bukkit.Location;
-import org.bukkit.command.*;
+import org.bukkit.command.Command;
+import org.bukkit.command.CommandExecutor;
+import org.bukkit.command.CommandSender;
 import org.bukkit.entity.Player;
 
+import java.util.ArrayList;
 import java.util.List;
 
+/**
+ * Main /fw command.
+ * With the MainMenu, /fw (no args) opens the MainMenu.
+ */
 public class FwCommand implements CommandExecutor {
 
     private final FireworksPlus plugin;
-    private final ShowMenu menu;
+    private final MainMenu mainMenu;
     private final ShowService shows;
     private final ShowStorage storage;
     private final DraftManager drafts;
     private final ScheduleManager schedule;
 
-    public FwCommand(FireworksPlus plugin, ShowMenu menu, ShowService shows, ShowStorage storage, DraftManager drafts, ScheduleManager schedule) {
+    public FwCommand(FireworksPlus plugin, MainMenu mainMenu, ShowService shows, ShowStorage storage, DraftManager drafts, ScheduleManager schedule) {
         this.plugin = plugin;
-        this.menu = menu;
+        this.mainMenu = mainMenu;
         this.shows = shows;
         this.storage = storage;
         this.drafts = drafts;
@@ -39,7 +45,7 @@ public class FwCommand implements CommandExecutor {
         }
 
         if (args.length == 0) {
-            plugin.getMainMenu().open(player);
+            mainMenu.open(player);
             return true;
         }
 
@@ -47,6 +53,11 @@ public class FwCommand implements CommandExecutor {
 
         if (sub.equals("help")) {
             sendHelp(player);
+            return true;
+        }
+
+        if (sub.equals("version") || sub.equals("ver")) {
+            sendVersionBox(player);
             return true;
         }
 
@@ -63,13 +74,13 @@ public class FwCommand implements CommandExecutor {
         }
 
         // /fw delete <name>
-        if (sub.equalsIgnoreCase("delete")) {
+        if (sub.equals("delete")) {
             if (!player.hasPermission("fireworksplus.admin")) {
                 player.sendMessage(ChatColor.RED + "No permission.");
                 return true;
             }
-            if (args.length != 2) {
-                player.sendMessage(ChatColor.RED + "Usage: " + ChatColor.WHITE + "/fw delete <name>");
+            if (args.length < 2) {
+                player.sendMessage(ChatColor.RED + "Usage: " + ChatColor.WHITE + "/fw delete <show>");
                 return true;
             }
 
@@ -77,7 +88,7 @@ public class FwCommand implements CommandExecutor {
             boolean ok = storage.deleteCustomShow(name);
 
             if (ok) {
-                player.sendMessage(ChatColor.GREEN + "Deleted custom show: " + ChatColor.WHITE + ShowStorage.normalizeId(name));
+                player.sendMessage(ChatColor.GREEN + "Deleted custom show: " + ChatColor.WHITE + name);
             } else {
                 player.sendMessage(ChatColor.RED + "Custom show not found: " + ChatColor.WHITE + name);
             }
@@ -128,83 +139,9 @@ public class FwCommand implements CommandExecutor {
                 player.sendMessage(ChatColor.RED + reason);
                 return true;
             }
+
             player.sendMessage(ChatColor.AQUA + "Starting: " + ChatColor.WHITE + "Custom show");
             player.sendMessage(ChatColor.DARK_GRAY + "ID: " + ChatColor.GRAY + showId);
-            return true;
-        }
-
-        // ---- Custom show builder ----
-
-        // /fw create <name>
-        if (sub.equals("create")) {
-            if (args.length != 2) {
-                player.sendMessage(ChatColor.RED + "Usage: " + ChatColor.WHITE + "/fw create <name>");
-                return true;
-            }
-            DraftShow d = drafts.create(player, args[1]);
-            player.sendMessage(ChatColor.GREEN + "Draft created: " + ChatColor.WHITE + d.name);
-            player.sendMessage(ChatColor.AQUA + "Next: " + ChatColor.WHITE + "/fw addpoint");
-            return true;
-        }
-
-        // /fw addpoint
-        if (sub.equals("addpoint")) {
-            DraftShow d = drafts.get(player);
-            if (d == null) {
-                player.sendMessage(ChatColor.RED + "No draft. Use: " + ChatColor.WHITE + "/fw create <name>");
-                return true;
-            }
-            Location loc = player.getLocation().clone();
-            loc.setYaw(0);
-            loc.setPitch(0);
-            d.points.add(loc);
-
-            player.sendMessage(ChatColor.GREEN + "Point added. Total points: " + ChatColor.WHITE + d.points.size());
-            return true;
-        }
-
-        // /fw duration <sec>
-        if (sub.equals("duration")) {
-            DraftShow d = drafts.get(player);
-            if (d == null) {
-                player.sendMessage(ChatColor.RED + "No draft. Use: " + ChatColor.WHITE + "/fw create <name>");
-                return true;
-            }
-            if (args.length != 2) {
-                player.sendMessage(ChatColor.RED + "Usage: " + ChatColor.WHITE + "/fw duration <seconds>");
-                return true;
-            }
-            int sec;
-            try { sec = Integer.parseInt(args[1]); }
-            catch (Exception e) {
-                player.sendMessage(ChatColor.RED + "Seconds must be a number.");
-                return true;
-            }
-
-            int max = plugin.getConfig().getInt("limits.max_duration_seconds", 60);
-            sec = Math.max(5, Math.min(sec, max));
-            d.durationSeconds = sec;
-
-            player.sendMessage(ChatColor.GREEN + "Duration set: " + ChatColor.WHITE + sec + "s");
-            return true;
-        }
-
-        // /fw save
-        if (sub.equals("save")) {
-            DraftShow d = drafts.get(player);
-            if (d == null) {
-                player.sendMessage(ChatColor.RED + "No draft. Use: " + ChatColor.WHITE + "/fw create <name>");
-                return true;
-            }
-            if (d.points.isEmpty()) {
-                player.sendMessage(ChatColor.RED + "Add at least one point: " + ChatColor.WHITE + "/fw addpoint");
-                return true;
-            }
-
-            storage.saveCustomShow(d, player);
-            drafts.clear(player);
-
-            player.sendMessage(ChatColor.GREEN + "Custom show saved.");
             return true;
         }
 
@@ -257,36 +194,6 @@ public class FwCommand implements CommandExecutor {
             return true;
         }
 
-        // /fw info <show>
-        if (sub.equals("info")) {
-            if (args.length != 2) {
-                player.sendMessage(ChatColor.RED + "Usage: " + ChatColor.WHITE + "/fw info <show>");
-                return true;
-            }
-
-            String showId = resolveShowId(args[1]);
-            if (showId == null) {
-                player.sendMessage(ChatColor.RED + "Show not found: " + ChatColor.WHITE + args[1]);
-                sendShowList(player);
-                return true;
-            }
-
-            // Built-in
-            if (plugin.getConfig().isConfigurationSection("shows." + showId)) {
-                sendBuiltInInfo(player, showId);
-                List<String> jobs = schedule.listSchedulesForShow(showId);
-                sendScheduleSection(player, jobs);
-                return true;
-            }
-
-            // Custom
-            DraftShow custom = storage.loadCustomShow(showId);
-            sendCustomInfo(player, showId);
-            List<String> jobs = schedule.listSchedulesForShow(showId);
-            sendScheduleSection(player, jobs);
-            return true;
-        }
-
         // /fw schedules
         if (sub.equals("schedules")) {
             if (!player.hasPermission("fireworksplus.admin")) {
@@ -305,160 +212,112 @@ public class FwCommand implements CommandExecutor {
             return true;
         }
 
+        if (sub.equals("menu")) {
+            mainMenu.open(player);
+            return true;
+        }
+
         player.sendMessage(ChatColor.RED + "Unknown subcommand.");
         sendUsage(player);
         return true;
     }
 
-    // ---------- Help / usage / lists ----------
+    // ---------- Help / usage ----------
 
     private void sendUsage(Player player) {
+        player.sendMessage(ChatColor.RED + "=== FireworksPlus ===");
         player.sendMessage(ChatColor.AQUA + "Usage:");
-        player.sendMessage(ChatColor.WHITE + "/fw help" + ChatColor.AQUA + " - open help menu");
-        player.sendMessage(ChatColor.WHITE + "/fw" + ChatColor.AQUA + " - open show menu");
+        player.sendMessage(ChatColor.WHITE + "/fw" + ChatColor.AQUA + " - open main menu");
         player.sendMessage(ChatColor.WHITE + "/fw play <show>" + ChatColor.AQUA + " - start a show");
+        player.sendMessage(ChatColor.WHITE + "/fw stop" + ChatColor.AQUA + " - stop your current show");
         player.sendMessage(ChatColor.WHITE + "/fw list" + ChatColor.AQUA + " - list all shows");
+        player.sendMessage(ChatColor.WHITE + "/fw version" + ChatColor.AQUA + " - plugin version");
         if (player.hasPermission("fireworksplus.admin")) {
             player.sendMessage(ChatColor.WHITE + "/fw schedule <show> <yyyy-MM-dd> <HH:mm>" + ChatColor.AQUA + " - schedule a show");
             player.sendMessage(ChatColor.WHITE + "/fw schedules" + ChatColor.AQUA + " - list schedules");
+            player.sendMessage(ChatColor.WHITE + "/fw delete <show>" + ChatColor.AQUA + " - delete a custom show");
             player.sendMessage(ChatColor.WHITE + "/fw reload" + ChatColor.AQUA + " - reload config");
         }
     }
 
     private void sendHelp(Player player) {
-        player.sendMessage(ChatColor.RED + "=== FireworksPlus ===");
-        player.sendMessage(ChatColor.WHITE + "/fw" + ChatColor.AQUA + " - open show menu");
-        player.sendMessage(ChatColor.WHITE + "/fw play <show>" + ChatColor.AQUA + " - start a show");
-        player.sendMessage(ChatColor.WHITE + "/fw list" + ChatColor.AQUA + " - list all shows");
-        player.sendMessage(ChatColor.WHITE + "/fw stop" + ChatColor.AQUA + " - stop your current show");
-        player.sendMessage(ChatColor.WHITE + "/fw create <name>" + ChatColor.AQUA + " - create custom show draft");
-        player.sendMessage(ChatColor.WHITE + "/fw delete <name>" + ChatColor.AQUA + " - delete custom show draft");
-        player.sendMessage(ChatColor.WHITE + "/fw addpoint" + ChatColor.AQUA + " - add point to draft (multiple)");
-        player.sendMessage(ChatColor.WHITE + "/fw duration <sec>" + ChatColor.AQUA + " - set draft duration");
-        player.sendMessage(ChatColor.WHITE + "/fw save" + ChatColor.AQUA + " - save draft to shows.yml");
-        if (player.hasPermission("fireworksplus.admin")) {
-            player.sendMessage(ChatColor.WHITE + "/fw schedule <show> <yyyy-MM-dd> <HH:mm>" + ChatColor.AQUA + " - schedule show at your location");
-            player.sendMessage(ChatColor.WHITE + "/fw unschedule <id>" + ChatColor.AQUA + " - remove a scheduled show");
-            player.sendMessage(ChatColor.WHITE + "/fw schedules" + ChatColor.AQUA + " - list schedules");
-            player.sendMessage(ChatColor.WHITE + "/fw reload" + ChatColor.AQUA + " - reload config");
-        }
+        sendUsage(player);
     }
 
-    private void sendShowList(Player player) {
-        player.sendMessage(ChatColor.AQUA + "Available shows:");
+    // ---------- Version box ----------
 
-        var sec = plugin.getConfig().getConfigurationSection("shows");
-        if (sec != null) {
-            for (String id : sec.getKeys(false)) {
-                String display = plugin.getConfig().getString("shows." + id + ".display", id);
-                String displayColored = ChatColor.translateAlternateColorCodes('&', display);
-                player.sendMessage(ChatColor.GRAY + "- " + displayColored + ChatColor.DARK_GRAY + " (" + id + ")");
-            }
-        }
 
-        List<String> custom = storage.listCustomShows();
-        for (String id : custom) {
-            player.sendMessage(ChatColor.GRAY + "- " + ChatColor.GREEN + "Custom: " + ChatColor.WHITE + id + ChatColor.DARK_GRAY + " (" + id + ")");
+    private void sendVersionBox(Player p) {
+        String ver = plugin.getDescription().getVersion();
+
+        // Keep it simple: Minecraft chat is not perfectly monospace, so avoid relying on trailing padding.
+        // We build a fixed-width frame using only visible characters.
+        List<String> plainLines = List.of(
+                "FireworksPlus v" + ver,
+                "Created by: mwmo2911"
+        );
+
+        int maxLen = 0;
+        for (String s : plainLines) maxLen = Math.max(maxLen, s.length());
+
+        int pad = 2; // spaces on each side inside the box
+        int innerWidth = maxLen + (pad * 2);
+
+        p.sendMessage(rainbowBorderLine('┌', '┐', innerWidth));
+        for (String line : plainLines) {
+            p.sendMessage(wallLine(line, innerWidth, pad));
         }
+        p.sendMessage(rainbowBorderLine('└', '┘', innerWidth));
     }
 
-    private void sendBuiltInPreview(Player player, String showId) {
-        String display = plugin.getConfig().getString("shows." + showId + ".display", showId);
-        int fireworks = plugin.getConfig().getInt("shows." + showId + ".fireworks", 30);
-        int interval = plugin.getConfig().getInt("shows." + showId + ".interval_ticks", 6);
-        double seconds = (fireworks * (double) interval) / 20.0;
+    private String rainbowBorderLine(char left, char right, int innerWidth) {
+        ChatColor[] rainbow = new ChatColor[] {
+                ChatColor.AQUA, ChatColor.LIGHT_PURPLE, ChatColor.YELLOW,
+                ChatColor.GREEN, ChatColor.RED, ChatColor.BLUE
+        };
 
-        String displayColored = ChatColor.translateAlternateColorCodes('&', display);
+        StringBuilder sb = new StringBuilder();
+        sb.append(ChatColor.RESET).append(rainbow[0]).append(left);
 
-        player.sendMessage(ChatColor.AQUA + "Starting: " + ChatColor.WHITE + displayColored);
-        player.sendMessage(ChatColor.DARK_GRAY + "ID: " + ChatColor.GRAY + showId
-                + ChatColor.DARK_GRAY + " | Fireworks: " + ChatColor.GRAY + fireworks
-                + ChatColor.DARK_GRAY + " | Interval: " + ChatColor.GRAY + interval + "t"
-                + ChatColor.DARK_GRAY + " | Est: " + ChatColor.GRAY + String.format("%.1f", seconds) + "s");
-    }
-
-    // Accept ID or display name
-    private String resolveShowId(String input) {
-        if (input == null) return null;
-
-        String needle = normalize(input);
-
-        // 1) built-in ids
-        var sec = plugin.getConfig().getConfigurationSection("shows");
-        if (sec != null) {
-            for (String id : sec.getKeys(false)) {
-                if (normalize(id).equals(needle)) return id;
-            }
-            for (String id : sec.getKeys(false)) {
-                String display = plugin.getConfig().getString("shows." + id + ".display", id);
-                String plain = ChatColor.stripColor(ChatColor.translateAlternateColorCodes('&', display));
-                if (normalize(plain).equals(needle)) return id;
-            }
+        for (int i = 0; i < innerWidth; i++) {
+            sb.append(rainbow[i % rainbow.length]).append('─');
         }
 
-        // 2) custom ids
-        if (storage.hasCustom(input)) return ShowStorage.normalizeId(input);
-        return null;
+        sb.append(rainbow[(innerWidth + 1) % rainbow.length]).append(right).append(ChatColor.RESET);
+        return sb.toString();
+    }
+
+    private String wallLine(String plain, int innerWidth, int pad) {
+        ChatColor[] rainbow = new ChatColor[] {
+                ChatColor.AQUA, ChatColor.LIGHT_PURPLE, ChatColor.YELLOW,
+                ChatColor.GREEN, ChatColor.RED, ChatColor.BLUE
+        };
+
+        // Left padding spaces + text + filler dashes (NOT spaces) so alignment doesn't depend on trimming.
+        int leftSpaces = pad;
+        int remaining = innerWidth - leftSpaces - plain.length();
+        if (remaining < 0) remaining = 0;
+
+        StringBuilder sb = new StringBuilder();
+        sb.append(ChatColor.RESET).append(rainbow[0]).append('│');
+        sb.append(ChatColor.GOLD);
+
+        sb.append(repeatChar(' ', leftSpaces));
+        sb.append(plain);
+
+        // Filler (looks like a clean divider, and keeps the right wall stable)
+        sb.append(ChatColor.DARK_GRAY).append(repeatChar('─', remaining));
+
+        sb.append(rainbow[(innerWidth + 1) % rainbow.length]).append('│').append(ChatColor.RESET);
+        return sb.toString();
+    }
+
+    private String repeatChar(char c, int n) {
+        if (n <= 0) return "";
+        return String.valueOf(c).repeat(n);
     }
 
     private String normalize(String s) {
         return s.toLowerCase().replace(" ", "").replace("_", "").replace("-", "");
-    }
-
-    private void sendBuiltInInfo(Player player, String showId) {
-        String display = plugin.getConfig().getString("shows." + showId + ".display", showId);
-        int fireworks = plugin.getConfig().getInt("shows." + showId + ".fireworks", 30);
-        int interval = plugin.getConfig().getInt("shows." + showId + ".interval_ticks", 6);
-        double radius = plugin.getConfig().getDouble("shows." + showId + ".radius", 1.6);
-
-        player.sendMessage(ChatColor.AQUA + "=== Show Info ===");
-        player.sendMessage(ChatColor.GRAY + "Type: " + ChatColor.WHITE + "Built-in");
-        player.sendMessage(ChatColor.GRAY + "Name: " + ChatColor.WHITE + ChatColor.translateAlternateColorCodes('&', display));
-        player.sendMessage(ChatColor.GRAY + "ID: " + ChatColor.WHITE + showId);
-        player.sendMessage(ChatColor.GRAY + "Fireworks: " + ChatColor.WHITE + fireworks);
-        player.sendMessage(ChatColor.GRAY + "Interval: " + ChatColor.WHITE + interval + "t");
-        player.sendMessage(ChatColor.GRAY + "Radius: " + ChatColor.WHITE + radius);
-    }
-
-    private void sendCustomInfo(Player player, String showId) {
-        String base = "custom." + showId;
-
-        String createdBy = storage.getYaml().getString(base + ".createdByName", "unknown");
-        String createdAt = storage.getYaml().getString(base + ".createdAt", "unknown");
-
-        List<?> pts = storage.getYaml().getList(base + ".points", List.of());
-
-        player.sendMessage(ChatColor.AQUA + "=== Show Info ===");
-        player.sendMessage(ChatColor.GRAY + "Type: " + ChatColor.WHITE + "Custom");
-        player.sendMessage(ChatColor.GRAY + "ID: " + ChatColor.WHITE + showId);
-        player.sendMessage(ChatColor.GRAY + "Points: " + ChatColor.WHITE + pts.size());
-        player.sendMessage(ChatColor.GRAY + "Created by: " + ChatColor.WHITE + createdBy);
-        player.sendMessage(ChatColor.GRAY + "Created at: " + ChatColor.WHITE + createdAt);
-
-        // print up to 5 points (avoid spam)
-        int printed = 0;
-        for (Object o : pts) {
-            if (!(o instanceof java.util.Map<?, ?> m)) continue;
-            String w = String.valueOf(m.get("world"));
-            int x = (int) Math.round(Double.parseDouble(String.valueOf(m.get("x"))));
-            int y = (int) Math.round(Double.parseDouble(String.valueOf(m.get("y"))));
-            int z = (int) Math.round(Double.parseDouble(String.valueOf(m.get("z"))));
-
-            player.sendMessage(ChatColor.DARK_GRAY + "- " + ChatColor.GRAY + w + " " + x + " " + y + " " + z);
-            printed++;
-            if (printed >= 5) break;
-        }
-        if (pts.size() > 5) {
-            player.sendMessage(ChatColor.DARK_GRAY + "... (" + (pts.size() - 5) + " more)");
-        }
-    }
-
-    private void sendScheduleSection(Player player, List<String> jobs) {
-        if (jobs == null || jobs.isEmpty()) {
-            player.sendMessage(ChatColor.GRAY + "Schedules: " + ChatColor.DARK_GRAY + "none");
-            return;
-        }
-        player.sendMessage(ChatColor.AQUA + "Schedules:");
-        for (String line : jobs) player.sendMessage(line);
     }
 }

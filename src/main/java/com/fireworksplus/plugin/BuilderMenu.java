@@ -27,7 +27,7 @@ public class BuilderMenu implements Listener {
 
     private BuilderChatListener chatListener; // injected after creation
     private BuilderColorsMenu colorsMenu;     // injected after creation
-    private ShowMenu showMenu;               // injected after creation
+    private MainMenu mainMenu;               // injected after creation
 
     public BuilderMenu(JavaPlugin plugin, BuilderManager builderManager, ShowStorage storage) {
         this.plugin = plugin;
@@ -47,8 +47,8 @@ public class BuilderMenu implements Listener {
         this.colorsMenu = colorsMenu;
     }
 
-    public void setShowMenu(ShowMenu showMenu) {
-        this.showMenu = showMenu;
+    public void setMainMenu(MainMenu mainMenu) {
+        this.mainMenu = mainMenu;
     }
 
     public void open(Player p) {
@@ -130,8 +130,10 @@ public class BuilderMenu implements Listener {
 
         if (slot == 26) { // back
             p.closeInventory();
-            if (showMenu != null) {
-                Bukkit.getScheduler().runTask(plugin, () -> showMenu.open(p));
+            if (mainMenu != null) {
+                Bukkit.getScheduler().runTask(plugin, () -> mainMenu.open(p));
+            } else {
+                p.sendMessage(ChatColor.RED + "Main menu is not registered.");
             }
             return;
         }

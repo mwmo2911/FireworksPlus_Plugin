@@ -40,6 +40,7 @@ public class FwTabCompleter implements TabCompleter {
             subs.add("addpoint");
             subs.add("duration");
             subs.add("save");
+            subs.add("version");
 
             if (player.hasPermission("fireworksplus.admin")) {
                 subs.add("schedule");

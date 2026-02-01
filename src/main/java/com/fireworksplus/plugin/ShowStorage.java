@@ -24,13 +24,22 @@ public class ShowStorage {
         reload();
     }
 
+    /** Deletes a custom show by id or name (normalized). Returns true if it existed and was removed. */
     public boolean deleteCustomShow(String idOrName) {
         String id = normalizeId(idOrName);
         String base = "custom." + id;
 
+        if (id.isBlank()) return false;
         if (!yaml.contains(base)) return false;
 
-        yaml.set(base, null);   // removes the entire section
+        yaml.set(base, null);
+
+        // If "custom" section becomes empty, remove it as well (clean file)
+        ConfigurationSection sec = yaml.getConfigurationSection("custom");
+        if (sec != null && sec.getKeys(false).isEmpty()) {
+            yaml.set("custom", null);
+        }
+
         saveFile();
         return true;
     }
@@ -126,7 +135,8 @@ public class ShowStorage {
                 .replace("_", "")
                 .replace("-", "");
     }
-    public org.bukkit.configuration.file.YamlConfiguration getYaml() {
+
+    public YamlConfiguration getYaml() {
         return yaml;
     }
 }

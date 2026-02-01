@@ -6,22 +6,25 @@ import org.bukkit.entity.Player;
 import org.bukkit.event.EventHandler;
 import org.bukkit.event.Listener;
 import org.bukkit.event.player.AsyncPlayerChatEvent;
+import org.bukkit.plugin.java.JavaPlugin;
 
 import java.util.HashSet;
 import java.util.Set;
 import java.util.UUID;
 
 /**
- * Captures chat input when the player is in "enter name" mode.
+ * Captures chat input for the Builder GUI (name input).
  */
 public class BuilderChatListener implements Listener {
 
+    private final JavaPlugin plugin;
     private final BuilderManager builderManager;
     private final BuilderMenu builderMenu;
 
     private final Set<UUID> waitingForName = new HashSet<>();
 
-    public BuilderChatListener(BuilderManager builderManager, BuilderMenu builderMenu) {
+    public BuilderChatListener(JavaPlugin plugin, BuilderManager builderManager, BuilderMenu builderMenu) {
+        this.plugin = plugin;
         this.builderManager = builderManager;
         this.builderMenu = builderMenu;
     }
@@ -37,19 +40,14 @@ public class BuilderChatListener implements Listener {
 
         e.setCancelled(true);
 
-        String msg = e.getMessage() == null ? "" : e.getMessage().trim();
-        if (msg.isEmpty()) {
-            p.sendMessage(ChatColor.RED + "Name cannot be empty. Type a name in chat.");
+        String msg = e.getMessage().trim();
+
+        if (msg.isEmpty() || msg.length() > 24) {
+            p.sendMessage(ChatColor.RED + "Name must be 1-24 characters.");
             return;
         }
-
-        if (msg.length() > 24) {
-            p.sendMessage(ChatColor.RED + "Name is too long (max 24 chars).");
-            return;
-        }
-
-        if (!msg.matches("[A-Za-z0-9 _-]+")) {
-            p.sendMessage(ChatColor.RED + "Name can only contain letters, numbers, spaces, _ and -");
+        if (!msg.matches("[A-Za-z0-9 _\\-]+")) {
+            p.sendMessage(ChatColor.RED + "Name can only contain letters, numbers, spaces, _ and -.");
             return;
         }
 
@@ -60,6 +58,6 @@ public class BuilderChatListener implements Listener {
 
         p.sendMessage(ChatColor.GREEN + "Builder name set to: " + ChatColor.WHITE + msg);
 
-        Bukkit.getScheduler().runTask(builderMenu.getPlugin(), () -> builderMenu.open(p));
+        Bukkit.getScheduler().runTask(plugin, () -> builderMenu.open(p));
     }
 }
