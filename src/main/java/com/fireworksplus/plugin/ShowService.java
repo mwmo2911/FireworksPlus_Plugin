@@ -162,6 +162,9 @@ public class ShowService {
 
                 Location loc = fixedBase.clone().add(rand(-radius, radius), 0.2, rand(-radius, radius));
                 Firework fw = world.spawn(loc, Firework.class);
+                if (plugin.getConfig().getBoolean("sounds.mute_vanilla_fireworks", false)) {
+                    fw.setSilent(true);
+                }
 
                 FireworkMeta meta = fw.getFireworkMeta();
                 meta.clearEffects();
@@ -231,6 +234,9 @@ public class ShowService {
 
                 Location loc = base.clone().add(rand(-show.radius, show.radius), 0.2, rand(-show.radius, show.radius));
                 Firework fw = world.spawn(loc, Firework.class);
+                if (plugin.getConfig().getBoolean("sounds.mute_vanilla_fireworks", false)) {
+                    fw.setSilent(true);
+                }
 
                 FireworkMeta meta = fw.getFireworkMeta();
                 meta.clearEffects();

@@ -24,6 +24,10 @@ public class ShowStorage {
         reload();
     }
 
+    public boolean deleteCustomShow(String name) {
+        return true;
+    }
+
     public void reload() {
         if (!plugin.getDataFolder().exists()) plugin.getDataFolder().mkdirs();
         if (!file.exists()) {

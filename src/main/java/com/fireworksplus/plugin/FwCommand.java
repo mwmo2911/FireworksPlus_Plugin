@@ -62,6 +62,28 @@ public class FwCommand implements CommandExecutor {
             return true;
         }
 
+        // /fw delete <name>
+        if (args.length >= 2 && args[0].equalsIgnoreCase("delete")) {
+            if (!(sender instanceof Player p)) {
+                sender.sendMessage(ChatColor.RED + "This command can only be used in-game.");
+                return true;
+            }
+            if (!p.hasPermission("fireworksplus.admin")) {
+                p.sendMessage(ChatColor.RED + "No permission.");
+                return true;
+            }
+
+            String name = args[1];
+
+            boolean ok = storage.deleteCustomShow(name);
+            if (ok) {
+                p.sendMessage(ChatColor.GREEN + "Deleted custom show: " + ChatColor.WHITE + name);
+            } else {
+                p.sendMessage(ChatColor.RED + "Custom show not found: " + ChatColor.WHITE + name);
+            }
+            return true;
+        }
+
         if (sub.equals("list")) {
             sendShowList(player);
             return true;

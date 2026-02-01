@@ -16,10 +16,12 @@ scheduling:
 gui:
   title: "&cFireworksPlus Shows"
   size: 27
+  builder_slot: 22
 
 sounds:
   enabled: true
-  start: "ENTITY_FIREWORK_ROCKET_LAUNCH"
+  mute_vanilla_fireworks: true
+  start: "UI_TOAST_CHALLENGE_COMPLETE"
   each_firework: ""
   end: "ENTITY_PLAYER_LEVELUP"
   volume: 1.0
