@@ -19,7 +19,7 @@ import java.util.List;
 
 public class BuilderMenu implements Listener {
 
-    private static final String TITLE = ChatColor.AQUA + "" + ChatColor.BOLD + "Show Builder";
+    private static final String TITLE = ChatColor.AQUA + "" + "Show Builder";
 
     private final JavaPlugin plugin;
     private final BuilderManager builderManager;

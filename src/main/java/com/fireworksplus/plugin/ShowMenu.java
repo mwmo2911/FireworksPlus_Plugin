@@ -21,6 +21,9 @@ import org.bukkit.plugin.java.JavaPlugin;
 import java.util.ArrayList;
 import java.util.Comparator;
 import java.util.List;
+import java.util.Map;
+import java.util.UUID;
+import java.util.concurrent.ConcurrentHashMap;
 
 /**
  * Shows browser menu (built-in + custom).
@@ -39,6 +42,7 @@ public class ShowMenu implements Listener {
     private MainMenu mainMenu; // injected after creation
 
     private final NamespacedKey keyShowId;
+    private final Map<UUID, Integer> openPages = new ConcurrentHashMap<>();
 
     public ShowMenu(JavaPlugin plugin, ShowService shows, ShowStorage storage, BuilderMenu builderMenu) {
         this.plugin = plugin;
@@ -53,6 +57,10 @@ public class ShowMenu implements Listener {
     }
 
     public void open(Player p) {
+        open(p, 0);
+    }
+
+    public void open(Player p, int page) {
         String title = color(plugin.getConfig().getString("gui.shows.title", plugin.getConfig().getString("gui.title", "&cShows")));
         int size = clampSize(plugin.getConfig().getInt("gui.shows.size", plugin.getConfig().getInt("gui.size", 27)));
 
@@ -60,6 +68,19 @@ public class ShowMenu implements Listener {
 
         int builderSlot = plugin.getConfig().getInt("gui.shows.builder_slot", plugin.getConfig().getInt("gui.builder_slot", 22));
         int backSlot = plugin.getConfig().getInt("gui.shows.back_slot", 26);
+        int prevSlot = 21;
+        int nextSlot = 23;
+
+        List<String> showIds = new ArrayList<>();
+        ConfigurationSection sec = plugin.getConfig().getConfigurationSection("shows");
+        if (sec != null) showIds.addAll(sec.getKeys(false));
+        showIds.addAll(storage.listCustomShows());
+        showIds.sort(Comparator.comparing(String::toLowerCase));
+
+        int perPage = 18;
+        int totalPages = Math.max(1, (int) Math.ceil(showIds.size() / (double) perPage));
+        int safePage = Math.min(Math.max(0, page), totalPages - 1);
+        openPages.put(p.getUniqueId(), safePage);
 
         // Back button
         if (backSlot >= 0 && backSlot < inv.getSize()) {
@@ -67,25 +88,27 @@ public class ShowMenu implements Listener {
                     List.of(ChatColor.GRAY + "Return to main menu")));
         }
 
-        // Builder button (optional)
+        // Builder button
         if (builderSlot >= 0 && builderSlot < inv.getSize()) {
             inv.setItem(builderSlot, makeBuilderButton());
         }
 
-        // Fill show items (skip reserved slots)
-        List<String> showIds = new ArrayList<>();
-        ConfigurationSection sec = plugin.getConfig().getConfigurationSection("shows");
-        if (sec != null) showIds.addAll(sec.getKeys(false));
-        showIds.addAll(storage.listCustomShows());
+        if (safePage > 0 && prevSlot < inv.getSize()) {
+            inv.setItem(prevSlot, button(Material.ARROW, ChatColor.AQUA + "Previous Page",
+                    List.of(ChatColor.GRAY + "Go to page " + safePage)));
+        }
 
-        showIds.sort(Comparator.comparing(String::toLowerCase));
+        if (safePage < totalPages - 1 && nextSlot < inv.getSize()) {
+            inv.setItem(nextSlot, button(Material.ARROW, ChatColor.AQUA + "Next Page",
+                    List.of(ChatColor.GRAY + "Go to page " + (safePage + 2))));
+        }
 
+        int start = safePage * perPage;
+        int end = Math.min(showIds.size(), start + perPage);
         int slot = 0;
-        for (String id : showIds) {
-            while (slot < inv.getSize() && (slot == builderSlot || slot == backSlot)) slot++;
-            if (slot >= inv.getSize()) break;
-
-            inv.setItem(slot, makeShowItem(id));
+        for (int i = start; i < end; i++) {
+            if (slot > 17) break;
+            inv.setItem(slot, makeShowItem(showIds.get(i)));
             slot++;
         }
 
@@ -106,6 +129,9 @@ public class ShowMenu implements Listener {
 
         int builderSlot = plugin.getConfig().getInt("gui.shows.builder_slot", plugin.getConfig().getInt("gui.builder_slot", 22));
         int backSlot = plugin.getConfig().getInt("gui.shows.back_slot", 26);
+        int prevSlot = 21;
+        int nextSlot = 23;
+        int page = openPages.getOrDefault(p.getUniqueId(), 0);
 
         // Back
         if (raw == backSlot) {
@@ -113,6 +139,16 @@ public class ShowMenu implements Listener {
             if (mainMenu != null) {
                 Bukkit.getScheduler().runTask(plugin, () -> mainMenu.open(p));
             }
+            return;
+        }
+
+        if (raw == prevSlot && page > 0) {
+            open(p, page - 1);
+            return;
+        }
+
+        if (raw == nextSlot) {
+            open(p, page + 1);
             return;
         }
 
@@ -147,7 +183,7 @@ public class ShowMenu implements Listener {
             boolean ok = storage.deleteCustomShow(showId);
             if (ok) {
                 p.sendMessage(ChatColor.GREEN + "Deleted custom show: " + ChatColor.WHITE + showId);
-                open(p); // refresh
+                open(p, page); // refresh
             } else {
                 p.sendMessage(ChatColor.RED + "Custom show not found: " + ChatColor.WHITE + showId);
             }

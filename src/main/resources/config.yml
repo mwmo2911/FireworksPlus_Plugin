@@ -19,6 +19,13 @@ main_gui:
   shows_slot: 12
   builder_slot: 14
   reload_slot: 22
+  schedules_slot: 4
+
+  gui:
+    schedules:
+      title: "&bSchedules"
+      size: 27
+      back_slot: 26
 
 sounds:
   enabled: true

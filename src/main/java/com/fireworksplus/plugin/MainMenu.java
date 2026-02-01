@@ -20,13 +20,26 @@ public class MainMenu implements Listener {
     private final JavaPlugin plugin;
     private final ShowMenu showMenu;       // your existing show list GUI
     private final BuilderMenu builderMenu; // your builder GUI
+    private final ScheduleMenu scheduleMenu;
+    private final ShowStorage storage;
+    private final ScheduleManager scheduleManager;
 
     private final String title;
 
-    public MainMenu(JavaPlugin plugin, ShowMenu showMenu, BuilderMenu builderMenu) {
+    public MainMenu(
+            JavaPlugin plugin,
+            ShowMenu showMenu,
+            BuilderMenu builderMenu,
+            ScheduleMenu scheduleMenu,
+            ShowStorage storage,
+            ScheduleManager scheduleManager
+    ) {
         this.plugin = plugin;
         this.showMenu = showMenu;
         this.builderMenu = builderMenu;
+        this.scheduleMenu = scheduleMenu;
+        this.storage = storage;
+        this.scheduleManager = scheduleManager;
 
         FileConfiguration c = plugin.getConfig();
         this.title = color(c.getString("main_gui.title", "&cFireworksPlus"));
@@ -58,6 +71,11 @@ public class MainMenu implements Listener {
             inv.setItem(reloadSlot, item(Material.REDSTONE,
                     ChatColor.RED + "" + ChatColor.BOLD + "Reload",
                     List.of(ChatColor.GRAY + "Reload config and data files")));
+
+            int schedulesSlot = plugin.getConfig().getInt("main_gui.schedules_slot", 24);
+            inv.setItem(schedulesSlot, item(Material.PAPER,
+                    ChatColor.AQUA + "" + ChatColor.BOLD + "Schedules",
+                    List.of(ChatColor.GRAY + "View scheduled shows")));
         }
 
         p.openInventory(inv);
@@ -76,6 +94,7 @@ public class MainMenu implements Listener {
         int showsSlot = plugin.getConfig().getInt("main_gui.shows_slot", 12);
         int builderSlot = plugin.getConfig().getInt("main_gui.builder_slot", 14);
         int reloadSlot = plugin.getConfig().getInt("main_gui.reload_slot", 22);
+        int schedulesSlot = plugin.getConfig().getInt("main_gui.schedules_slot", 24);
 
         if (raw == showsSlot) {
             showMenu.open(p);
@@ -93,8 +112,17 @@ public class MainMenu implements Listener {
 
         if (raw == reloadSlot && p.hasPermission("fireworksplus.admin")) {
             plugin.reloadConfig();
-            p.sendMessage(ChatColor.GREEN + "Reloaded config.");
+            storage.reload();
+            scheduleManager.reload();
+            p.sendMessage(ChatColor.GREEN + "Reloaded config and data files.");
             open(p); // refresh
+            return;
+        }
+
+        if (raw == schedulesSlot && p.hasPermission("fireworksplus.admin")) {
+            if (scheduleMenu != null) {
+                scheduleMenu.open(p);
+            }
         }
     }
 

@@ -1,5 +1,5 @@
 name: FireworksPlus
-version: 1.0.3
+version: 1.0
 main: com.fireworksplus.plugin.FireworksPlus
 api-version: "1.13"
 
