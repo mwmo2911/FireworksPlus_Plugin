@@ -34,12 +34,8 @@ public class BuilderMenu implements Listener {
     private BuilderChatListener chatListener;
     private BuilderColorsMenu colorsMenu;
     private BuilderTypesMenu typesMenu;
-    private MainMenu mainMenu;
     private BuilderParticlesMenu particlesMenu;
-
-    public void setParticlesMenu(BuilderParticlesMenu particlesMenu) {
-        this.particlesMenu = particlesMenu;
-    }
+    private MainMenu mainMenu;
 
     public BuilderMenu(JavaPlugin plugin, BuilderManager builderManager, ShowStorage storage) {
         this.plugin = plugin;
@@ -64,6 +60,10 @@ public class BuilderMenu implements Listener {
         this.typesMenu = typesMenu;
     }
 
+    public void setParticlesMenu(BuilderParticlesMenu particlesMenu) {
+        this.particlesMenu = particlesMenu;
+    }
+
     public void setMainMenu(MainMenu mainMenu) {
         this.mainMenu = mainMenu;
     }
@@ -73,11 +73,11 @@ public class BuilderMenu implements Listener {
 
         Inventory inv = Bukkit.createInventory(p, 27, TITLE);
 
-        inv.setItem(9, button(Material.NAME_TAG,
+        inv.setItem(1, button(Material.NAME_TAG,
                 ChatColor.AQUA + "Name: " + ChatColor.WHITE + s.name,
                 List.of(ChatColor.GRAY + "Click to set via chat")));
 
-        inv.setItem(10, button(Material.BLAZE_ROD,
+        inv.setItem(2, button(Material.BLAZE_ROD,
                 ChatColor.AQUA + (s.collectingPoints ? "Finish Points" : "Add Points"),
                 List.of(
                         ChatColor.GRAY + (s.collectingPoints
@@ -88,24 +88,24 @@ public class BuilderMenu implements Listener {
                         ChatColor.DARK_GRAY + "Collecting: " + ChatColor.GRAY + (s.collectingPoints ? "Yes" : "No")
                 )));
 
-        inv.setItem(11, button(Material.BARRIER,
+        inv.setItem(3, button(Material.BARRIER,
                 ChatColor.RED + "Remove Last Point",
                 List.of(ChatColor.GRAY + "Removes the most recent point",
                         ChatColor.DARK_GRAY + "Points: " + ChatColor.GRAY + s.points.size())));
 
-        inv.setItem(12, button(Material.CLOCK,
+        inv.setItem(4, button(Material.CLOCK,
                 ChatColor.AQUA + "Duration: " + ChatColor.WHITE + s.durationSeconds + "s",
                 List.of(ChatColor.GRAY + "Left: +5s  |  Right: -5s")));
 
-        inv.setItem(13, button(Material.REPEATER,
+        inv.setItem(5, button(Material.REPEATER,
                 ChatColor.AQUA + "Interval: " + ChatColor.WHITE + s.intervalTicks + "t",
                 List.of(ChatColor.GRAY + "Left: +1t  |  Right: -1t")));
 
-        inv.setItem(14, button(Material.FEATHER,
+        inv.setItem(6, button(Material.FEATHER,
                 ChatColor.AQUA + "Radius: " + ChatColor.WHITE + String.format("%.1f", s.radius),
                 List.of(ChatColor.GRAY + "Left: +0.2  |  Right: -0.2")));
 
-        inv.setItem(15, button(Material.GUNPOWDER,
+        inv.setItem(7, button(Material.GUNPOWDER,
                 ChatColor.AQUA + "Power: " + ChatColor.WHITE + "min=" + s.powerMin + " max=" + s.powerMax,
                 List.of(
                         ChatColor.GRAY + "Firework flight height",
@@ -113,18 +113,18 @@ public class BuilderMenu implements Listener {
                         ChatColor.GRAY + "Shift+Left: min +1 | Shift+Right: min -1"
                 )));
 
-        inv.setItem(16, button(Material.COMPASS,
+        inv.setItem(12, button(Material.COMPASS,
                 ChatColor.AQUA + "Type: " + ChatColor.WHITE + displayTypes(s.fireworkTypes),
                 List.of(ChatColor.GRAY + "Click to edit types")));
 
-        inv.setItem(17, button(Material.INK_SAC,
+        inv.setItem(13, button(Material.INK_SAC,
                 ChatColor.AQUA + "Palette: " + ChatColor.WHITE + s.palette.size(),
                 paletteLore(s.palette),
                 paletteIcon()));
 
-        inv.setItem(18, button(Material.GLOWSTONE_DUST,
-                ChatColor.AQUA + "Particles: " + ChatColor.WHITE + (s.particleTrail ? "On" : "Off"),
-                List.of(ChatColor.GRAY + "Toggle trailing particles")));
+        inv.setItem(14, button(Material.GLOWSTONE_DUST,
+                ChatColor.AQUA + "Particles: " + ChatColor.WHITE + displayParticles(s),
+                List.of(ChatColor.GRAY + "Click to edit particles")));
 
         inv.setItem(25, button(Material.EMERALD,
                 ChatColor.GREEN + "Save Show",
@@ -135,6 +135,11 @@ public class BuilderMenu implements Listener {
                 List.of(ChatColor.GRAY + "Return to main menu")));
 
         p.openInventory(inv);
+    }
+
+    public void openForEdit(Player p, DraftShow show) {
+        builderManager.startEditing(p, show);
+        open(p);
     }
 
     @EventHandler
@@ -159,14 +164,14 @@ public class BuilderMenu implements Listener {
             return;
         }
 
-        if (slot == 9) {
+        if (slot == 1) {
             p.closeInventory();
             p.sendMessage(ChatColor.AQUA + "Type the show name in chat (max 24 chars).");
             if (chatListener != null) chatListener.requestName(p);
             return;
         }
 
-        if (slot == 10) {
+        if (slot == 2) {
             if (!s.collectingPoints) {
                 if (p.getInventory().firstEmpty() == -1) {
                     p.sendMessage(ChatColor.RED + "Your inventory is full. Empty a slot to receive the point tool.");
@@ -187,7 +192,7 @@ public class BuilderMenu implements Listener {
             return;
         }
 
-        if (slot == 11) {
+        if (slot == 3) {
             if (!s.points.isEmpty()) {
                 s.points.remove(s.points.size() - 1);
                 p.sendMessage(ChatColor.YELLOW + "Last point removed. Total: " + ChatColor.WHITE + s.points.size());
@@ -198,7 +203,7 @@ public class BuilderMenu implements Listener {
             return;
         }
 
-        if (slot == 12) {
+        if (slot == 4) {
             if (e.getClick() == ClickType.LEFT) s.durationSeconds += 5;
             else if (e.getClick() == ClickType.RIGHT) s.durationSeconds -= 5;
 
@@ -209,7 +214,7 @@ public class BuilderMenu implements Listener {
             return;
         }
 
-        if (slot == 13) {
+        if (slot == 5) {
             if (e.getClick() == ClickType.LEFT) s.intervalTicks += 1;
             else if (e.getClick() == ClickType.RIGHT) s.intervalTicks -= 1;
 
@@ -220,7 +225,7 @@ public class BuilderMenu implements Listener {
             return;
         }
 
-        if (slot == 14) {
+        if (slot == 6) {
             if (e.getClick() == ClickType.LEFT) s.radius += 0.2;
             else if (e.getClick() == ClickType.RIGHT) s.radius -= 0.2;
 
@@ -230,7 +235,7 @@ public class BuilderMenu implements Listener {
             return;
         }
 
-        if (slot == 15) {
+        if (slot == 7) {
             ClickType c = e.getClick();
 
             if (c == ClickType.LEFT) s.powerMax++;
@@ -246,7 +251,7 @@ public class BuilderMenu implements Listener {
             return;
         }
 
-        if (slot == 16) {
+        if (slot == 12) {
             if (typesMenu == null) {
                 p.sendMessage(ChatColor.RED + "Types menu is not registered.");
                 return;
@@ -255,7 +260,7 @@ public class BuilderMenu implements Listener {
             return;
         }
 
-        if (slot == 17) {
+        if (slot == 13) {
             if (colorsMenu == null) {
                 p.sendMessage(ChatColor.RED + "Colors menu is not registered.");
                 return;
@@ -264,9 +269,12 @@ public class BuilderMenu implements Listener {
             return;
         }
 
-        if (slot == 18) {
-            s.particleTrail = !s.particleTrail;
-            open(p);
+        if (slot == 14) {
+            if (particlesMenu == null) {
+                p.sendMessage(ChatColor.RED + "Particles menu is not registered.");
+                return;
+            }
+            particlesMenu.open(p);
             return;
         }
 
@@ -289,6 +297,7 @@ public class BuilderMenu implements Listener {
             d.fireworkTypes = new ArrayList<>(s.fireworkTypes);
             d.palette = new ArrayList<>(s.palette);
             d.particleTrail = s.particleTrail;
+            d.trailParticles = new ArrayList<>(s.trailParticles);
             d.points.addAll(s.points);
 
             storage.saveCustomShow(d, p);
@@ -319,33 +328,8 @@ public class BuilderMenu implements Listener {
         loc.setPitch(0);
         s.points.add(loc);
         p.sendMessage(ChatColor.GREEN + "Point added. Total: " + ChatColor.WHITE + s.points.size());
-    }
-
-    public void openForEdit(Player p, DraftShow show) {
-        if (p == null || show == null) return;
-
-        BuilderSession s = builderManager.getOrCreate(p);
-
-        s.name = show.name;
-        s.durationSeconds = show.durationSeconds;
-        s.intervalTicks = show.intervalTicks;
-        s.radius = show.radius;
-        s.powerMin = show.powerMin;
-        s.powerMax = show.powerMax;
-
-        s.palette.clear();
-        if (show.palette != null) s.palette.addAll(show.palette);
-
-        s.points.clear();
-        if (show.points != null) {
-            for (org.bukkit.Location loc : show.points) {
-                if (loc != null) s.points.add(loc.clone());
-            }
-        }
-
-        open(p);
-
-        p.sendMessage(ChatColor.AQUA + "Editing custom show: " + ChatColor.WHITE + show.name);
+        p.sendMessage(ChatColor.GRAY + "Point: " + ChatColor.WHITE + formatLocation(loc));
+        spawnPointMarker(loc);
     }
 
     private int clamp(int v, int min, int max) {
@@ -397,6 +381,13 @@ public class BuilderMenu implements Listener {
         return new ItemStack(Material.INK_SAC);
     }
 
+    private String displayParticles(BuilderSession s) {
+        if (s.trailParticles != null && !s.trailParticles.isEmpty()) {
+            return String.valueOf(s.trailParticles.size());
+        }
+        return "None";
+    }
+
     private ItemStack pointTool() {
         ItemStack it = new ItemStack(Material.BLAZE_ROD);
         ItemMeta meta = it.getItemMeta();
@@ -434,5 +425,35 @@ public class BuilderMenu implements Listener {
         if (offhand != null && offhand.getType() == Material.BLAZE_ROD && isPointTool(offhand)) {
             p.getInventory().setItemInOffHand(null);
         }
+    }
+
+    private void spawnPointMarker(Location location) {
+        if (location == null || location.getWorld() == null) return;
+        String particleName = plugin.getConfig().getString("particles.point_marker", "END_ROD");
+        org.bukkit.Particle particle;
+        try {
+            particle = org.bukkit.Particle.valueOf(particleName.trim().toUpperCase(java.util.Locale.ROOT));
+        } catch (IllegalArgumentException ex) {
+            return;
+        }
+
+        new org.bukkit.scheduler.BukkitRunnable() {
+            int ticks = 0;
+
+            @Override
+            public void run() {
+                if (ticks > 80) {
+                    cancel();
+                    return;
+                }
+                location.getWorld().spawnParticle(particle, location, 12, 0.2, 0.3, 0.2, 0.0);
+                ticks++;
+            }
+        }.runTaskTimer(plugin, 0L, 2L);
+    }
+
+    private String formatLocation(Location loc) {
+        if (loc == null) return "";
+        return String.format("%.1f, %.1f, %.1f", loc.getX(), loc.getY(), loc.getZ());
     }
 }

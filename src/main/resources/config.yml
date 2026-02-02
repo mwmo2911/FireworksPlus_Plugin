@@ -44,13 +44,16 @@ sounds:
 
 particles:
   trail_type: "FIREWORKS_SPARK"
-options:
-  - "FIREWORKS_SPARK"
-  - "END_ROD"
-  - "VILLAGER_HAPPY"
-  - "CRIT"
-  - "CLOUD"
-  - "ENCHANT"
+  options:
+    - "FIREWORKS_SPARK"
+    - "END_ROD"
+    - "VILLAGER_HAPPY"
+    - "CRIT"
+    - "CLOUD"
+    - "ENCHANT"
+    - "DRIP_WATER"
+    - "DRIP_LAVA"
+    - "HEART"
   point_marker: "END_ROD"
 
 shows:

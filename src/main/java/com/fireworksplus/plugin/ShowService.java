@@ -5,6 +5,7 @@ import org.bukkit.FireworkEffect;
 import org.bukkit.Location;
 import org.bukkit.Particle;
 import org.bukkit.Sound;
+import org.bukkit.util.Vector;
 import org.bukkit.World;
 import org.bukkit.configuration.ConfigurationSection;
 import org.bukkit.entity.Firework;
@@ -324,6 +325,10 @@ public class ShowService {
 
     private void attachParticleTrail(Firework firework, Particle particle) {
         if (firework == null || particle == null) return;
+        Vector initialVelocity = firework.getVelocity();
+        if (initialVelocity.lengthSquared() < 0.01) {
+            firework.setVelocity(new Vector(0, 0.5, 0));
+        }
         new BukkitRunnable() {
             int ticks = 0;
 
@@ -334,7 +339,7 @@ public class ShowService {
                     return;
                 }
 
-                Location loc = firework.getLocation();
+                Location loc = firework.getLocation().add(0, 0.25, 0);
                 if (loc.getWorld() != null) {
                     loc.getWorld().spawnParticle(particle, loc, 2, 0.05, 0.05, 0.05, 0.0);
                 }

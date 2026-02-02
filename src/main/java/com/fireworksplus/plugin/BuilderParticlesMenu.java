@@ -38,21 +38,11 @@ public class BuilderParticlesMenu implements Listener {
         Inventory inv = Bukkit.createInventory(p, 27, TITLE);
         List<String> options = particleOptions();
 
-        int slot = 9;
-        for (String option : options) {
-            if (slot >= 18) break;
-            particleButton(inv, slot, option, s);
-            slot++;
+        int[] slots = new int[] {1, 2, 3, 4, 5, 6, 7, 12, 13, 14};
+        int count = Math.min(options.size(), slots.length);
+        for (int i = 0; i < count; i++) {
+            particleButton(inv, slots[i], options.get(i), s);
         }
-
-        inv.setItem(22, button(Material.BOOK, ChatColor.AQUA + "Current Particles",
-                List.of(
-                        ChatColor.GRAY + "Selected: " + ChatColor.WHITE + s.trailParticles.size(),
-                        ChatColor.DARK_GRAY + "Click adds, Shift-click removes"
-                )));
-
-        inv.setItem(24, button(Material.BARRIER, ChatColor.RED + "Clear Particles",
-                List.of(ChatColor.GRAY + "Remove all selected particles")));
 
         inv.setItem(26, button(Material.ARROW, ChatColor.AQUA + "Back",
                 List.of(ChatColor.GRAY + "Return to builder")));
@@ -64,7 +54,7 @@ public class BuilderParticlesMenu implements Listener {
         boolean has = s.trailParticles.stream().anyMatch(x -> x.equalsIgnoreCase(particleName));
         String status = has ? (ChatColor.GREEN + "IN LIST") : (ChatColor.RED + "NOT IN LIST");
 
-        inv.setItem(slot, button(Material.NETHER_STAR,
+        inv.setItem(slot, button(materialForParticle(particleName),
                 ChatColor.AQUA + display(particleName),
                 List.of(
                         ChatColor.GRAY + "Status: " + status,
@@ -100,14 +90,6 @@ public class BuilderParticlesMenu implements Listener {
         }
 
         BuilderSession s = builderManager.getOrCreate(p);
-
-        if (slot == 24) {
-            s.trailParticles.clear();
-            s.particleTrail = false;
-            p.sendMessage(ChatColor.YELLOW + "All particles cleared.");
-            open(p);
-            return;
-        }
 
         ItemStack it = e.getCurrentItem();
         if (it == null || it.getType() == Material.AIR) return;
@@ -153,6 +135,23 @@ public class BuilderParticlesMenu implements Listener {
         } catch (IllegalArgumentException ignored) {
             return null;
         }
+    }
+
+    private Material materialForParticle(String particleName) {
+        if (particleName == null) return Material.GLOWSTONE_DUST;
+        String key = particleName.trim().toUpperCase(Locale.ROOT);
+        return switch (key) {
+            case "DRIP_WATER", "WATER_SPLASH", "WATER_WAKE", "WATER_BUBBLE" -> Material.WATER_BUCKET;
+            case "DRIP_LAVA", "LAVA" -> Material.LAVA_BUCKET;
+            case "HEART" -> Material.POPPY;
+            case "END_ROD" -> Material.END_ROD;
+            case "VILLAGER_HAPPY" -> Material.EMERALD;
+            case "CRIT" -> Material.IRON_NUGGET;
+            case "CLOUD" -> Material.WHITE_DYE;
+            case "ENCHANT" -> Material.ENCHANTING_TABLE;
+            case "FIREWORKS_SPARK" -> Material.FIREWORK_STAR;
+            default -> Material.GLOWSTONE_DUST;
+        };
     }
 
     private List<String> particleOptions() {
