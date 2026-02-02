@@ -25,13 +25,6 @@ import java.util.Map;
 import java.util.UUID;
 import java.util.concurrent.ConcurrentHashMap;
 
-/**
- * Shows browser menu (built-in + custom).
- * - Click: play show
- * - Shift + Right Click on custom: delete (admin permission)
- * - Back arrow: return to MainMenu
- * - Builder button: open BuilderMenu (admin permission)
- */
 public class ShowMenu implements Listener {
 
     private final JavaPlugin plugin;
@@ -39,7 +32,7 @@ public class ShowMenu implements Listener {
     private final ShowStorage storage;
     private final BuilderMenu builderMenu;
 
-    private MainMenu mainMenu; // injected after creation
+    private MainMenu mainMenu;
 
     private final NamespacedKey keyShowId;
     private final Map<UUID, Integer> openPages = new ConcurrentHashMap<>();
@@ -82,13 +75,11 @@ public class ShowMenu implements Listener {
         int safePage = Math.min(Math.max(0, page), totalPages - 1);
         openPages.put(p.getUniqueId(), safePage);
 
-        // Back button
         if (backSlot >= 0 && backSlot < inv.getSize()) {
             inv.setItem(backSlot, button(Material.ARROW, ChatColor.AQUA + "Back",
                     List.of(ChatColor.GRAY + "Return to main menu")));
         }
 
-        // Builder button
         if (builderSlot >= 0 && builderSlot < inv.getSize()) {
             inv.setItem(builderSlot, makeBuilderButton());
         }
@@ -133,7 +124,6 @@ public class ShowMenu implements Listener {
         int nextSlot = 23;
         int page = openPages.getOrDefault(p.getUniqueId(), 0);
 
-        // Back
         if (raw == backSlot) {
             p.closeInventory();
             if (mainMenu != null) {
@@ -155,11 +145,10 @@ public class ShowMenu implements Listener {
         ItemStack clicked = e.getCurrentItem();
         if (clicked == null || clicked.getType() == Material.AIR) return;
 
-        // Builder button
         if (raw == builderSlot) {
             p.closeInventory();
 
-            if (!p.hasPermission("fireworksplus.admin")) {
+            if (!hasPermission(p, "fireworksplus.builder")) {
                 p.sendMessage(ChatColor.RED + "No permission.");
                 return;
             }
@@ -173,9 +162,8 @@ public class ShowMenu implements Listener {
 
         boolean isBuiltIn = plugin.getConfig().isConfigurationSection("shows." + showId);
 
-        // Delete custom show: Shift + Right Click
         if (!isBuiltIn && e.getClick() == ClickType.SHIFT_RIGHT) {
-            if (!p.hasPermission("fireworksplus.admin")) {
+            if (!hasPermission(p, "fireworksplus.admin.delete")) {
                 p.sendMessage(ChatColor.RED + "No permission.");
                 return;
             }
@@ -190,7 +178,6 @@ public class ShowMenu implements Listener {
             return;
         }
 
-        // Play
         if (isBuiltIn) {
             String err = shows.playShow(p, showId);
             if (err != null) p.sendMessage(ChatColor.RED + err);
@@ -212,6 +199,10 @@ public class ShowMenu implements Listener {
         return it;
     }
 
+    private boolean hasPermission(Player p, String node) {
+        return p.hasPermission("fireworksplus.*") || p.hasPermission(node);
+    }
+
     private ItemStack makeShowItem(String showId) {
         boolean builtIn = plugin.getConfig().isConfigurationSection("shows." + showId);
 
@@ -231,7 +222,6 @@ public class ShowMenu implements Listener {
             lore.add(ChatColor.DARK_GRAY + "Shift+Right: delete");
         }
 
-        // IMPORTANT: avoid FIREWORK_ROCKET so Minecraft doesn't show "Flight Duration" tooltip
         Material mat = builtIn ? Material.FIREWORK_STAR : Material.NETHER_STAR;
         ItemStack it = new ItemStack(mat);
 

@@ -52,9 +52,6 @@ public class FwCommand implements CommandExecutor {
             return true;
         }
 
-        /* =======================
-           /fw  → open GUI
-           ======================= */
         if (args.length == 0) {
             if (mainMenu != null) {
                 mainMenu.open(player);
@@ -66,25 +63,16 @@ public class FwCommand implements CommandExecutor {
 
         String sub = args[0];
 
-        /* =======================
-           /fw help
-           ======================= */
         if ("help".equalsIgnoreCase(sub)) {
             sendHelp(player);
             return true;
         }
 
-        /* =======================
-           /fw version
-           ======================= */
         if ("version".equalsIgnoreCase(sub) || "ver".equalsIgnoreCase(sub)) {
             sendVersionBox(player);
             return true;
         }
 
-        /* =======================
-           /fw reload
-           ======================= */
         if ("reload".equalsIgnoreCase(sub)) {
             if (!hasPermission(player, "fireworksplus.admin.reload")) {
                 player.sendMessage(ChatColor.RED + "No permission.");
@@ -98,9 +86,6 @@ public class FwCommand implements CommandExecutor {
             return true;
         }
 
-        /* =======================
-           /fw stop
-           ======================= */
         if ("stop".equalsIgnoreCase(sub)) {
             boolean stopped = shows.stopShow(player);
             player.sendMessage(stopped
@@ -109,17 +94,11 @@ public class FwCommand implements CommandExecutor {
             return true;
         }
 
-        /* =======================
-           /fw list
-           ======================= */
         if ("list".equalsIgnoreCase(sub)) {
             sendShowList(player);
             return true;
         }
 
-        /* =======================
-           /fw info <show>
-           ======================= */
         if ("info".equalsIgnoreCase(sub)) {
             if (args.length < 2) {
                 player.sendMessage(ChatColor.RED + "Usage: " + ChatColor.WHITE + "/fw info <show>");
@@ -137,9 +116,6 @@ public class FwCommand implements CommandExecutor {
             return true;
         }
 
-        /* =======================
-           /fw play <show>
-           ======================= */
         if ("play".equalsIgnoreCase(sub)) {
             if (args.length < 2) {
                 sendShowList(player);
@@ -176,9 +152,6 @@ public class FwCommand implements CommandExecutor {
             return true;
         }
 
-        /* =======================
-           /fw schedule <show> <yyyy-MM-dd> <HH:mm>
-           ======================= */
         if ("schedule".equalsIgnoreCase(sub)) {
             if (!hasPermission(player, "fireworksplus.admin.schedule")) {
                 player.sendMessage(ChatColor.RED + "No permission.");
@@ -206,9 +179,6 @@ public class FwCommand implements CommandExecutor {
             return true;
         }
 
-        /* =======================
-           /fw unschedule <id>
-           ======================= */
         if ("unschedule".equalsIgnoreCase(sub)) {
             if (!hasPermission(player, "fireworksplus.admin.schedule")) {
                 player.sendMessage(ChatColor.RED + "No permission.");
@@ -228,9 +198,6 @@ public class FwCommand implements CommandExecutor {
             return true;
         }
 
-        /* =======================
-           /fw schedules
-           ======================= */
         if ("schedules".equalsIgnoreCase(sub)) {
             if (!hasPermission(player, "fireworksplus.admin.schedule")) {
                 player.sendMessage(ChatColor.RED + "No permission.");
@@ -248,9 +215,6 @@ public class FwCommand implements CommandExecutor {
             return true;
         }
 
-        /* =======================
-           /fw delete <show>
-           ======================= */
         if ("delete".equalsIgnoreCase(sub)) {
             if (!hasPermission(player, "fireworksplus.admin.delete")) {
                 player.sendMessage(ChatColor.RED + "No permission.");
@@ -280,17 +244,11 @@ public class FwCommand implements CommandExecutor {
             return true;
         }
 
-        /* =======================
-           fallback
-           ======================= */
         player.sendMessage(ChatColor.RED + "Unknown subcommand.");
         sendHelp(player);
         return true;
     }
 
-    /* =====================================================
-       VERSION TEXT
-       ===================================================== */
     private void sendVersionBox(Player p) {
         String line1 =
                 ChatColor.GOLD + "FireworksPlus " +
@@ -369,6 +327,7 @@ public class FwCommand implements CommandExecutor {
         player.sendMessage(ChatColor.GRAY + "Radius: " + ChatColor.WHITE + custom.radius);
         player.sendMessage(ChatColor.GRAY + "Power: " + ChatColor.WHITE + custom.powerMin + "-" + custom.powerMax);
         player.sendMessage(ChatColor.GRAY + "Type: " + ChatColor.WHITE + formatTypes(custom.fireworkTypes));
+        player.sendMessage(ChatColor.GRAY + "Particles: " + ChatColor.WHITE + (custom.particleTrail ? "On" : "Off"));
         player.sendMessage(ChatColor.GRAY + "Points: " + ChatColor.WHITE + custom.points.size());
         if (!custom.palette.isEmpty()) {
             player.sendMessage(ChatColor.GRAY + "Palette: " + ChatColor.WHITE + String.join(", ", custom.palette));

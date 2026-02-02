@@ -8,6 +8,12 @@ runtime:
   allow_simultaneous_shows: false
   cancel_previous_show: true
 
+update_checker:
+  enabled: false
+  resource_id: 0
+  cache_minutes: 60
+  notify_permission: "fireworksplus.admin.update"
+
 scheduling:
   enabled: true
   poll_seconds: 20

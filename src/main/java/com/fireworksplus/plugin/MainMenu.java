@@ -18,8 +18,8 @@ import java.util.List;
 public class MainMenu implements Listener {
 
     private final JavaPlugin plugin;
-    private final ShowMenu showMenu;       // your existing show list GUI
-    private final BuilderMenu builderMenu; // your builder GUI
+    private final ShowMenu showMenu;
+    private final BuilderMenu builderMenu;
     private final ScheduleMenu scheduleMenu;
     private final ShowStorage storage;
     private final ScheduleManager scheduleManager;
@@ -104,7 +104,7 @@ public class MainMenu implements Listener {
         }
 
         if (raw == builderSlot) {
-            if (!p.hasPermission("fireworksplus.admin")) {
+            if (!hasPermission(p, "fireworksplus.builder")) {
                 p.sendMessage(ChatColor.RED + "No permission.");
                 return;
             }

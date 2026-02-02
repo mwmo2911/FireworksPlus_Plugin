@@ -15,11 +15,6 @@ import org.bukkit.plugin.java.JavaPlugin;
 
 import java.util.List;
 
-/**
- * Palette editor for BuilderSession.
- * - Click a color to ADD it to palette
- * - Shift-click a color to REMOVE it from palette
- */
 public class BuilderColorsMenu implements Listener {
 
     private static final String TITLE = ChatColor.DARK_AQUA + "" + "Palette Editor";
@@ -39,7 +34,6 @@ public class BuilderColorsMenu implements Listener {
 
         Inventory inv = Bukkit.createInventory(p, 27, TITLE);
 
-        // Preset buttons (hex values stored in lore)
         preset(inv, 10, Material.RED_DYE,        ChatColor.RED + "Red",            "#ff3333", s);
         preset(inv, 11, Material.ORANGE_DYE,     ChatColor.GOLD + "Orange",        "#ff8800", s);
         preset(inv, 12, Material.YELLOW_DYE,     ChatColor.YELLOW + "Yellow",      "#ffee33", s);
@@ -108,7 +102,6 @@ public class BuilderColorsMenu implements Listener {
         ItemMeta meta = it.getItemMeta();
         if (meta == null || meta.getLore() == null) return;
 
-        // Extract hex from lore line "Hex: #xxxxxx"
         String hex = null;
         for (String line : meta.getLore()) {
             if (line == null) continue;

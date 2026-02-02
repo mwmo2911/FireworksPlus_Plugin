@@ -19,7 +19,6 @@ public class BuilderManager {
     public BuilderSession getOrCreate(Player p) {
         return sessions.computeIfAbsent(p.getUniqueId(), (id) -> {
             BuilderSession s = new BuilderSession();
-            // default palette from a built-in show if it exists
             s.palette = plugin.getConfig().getStringList("shows.celebration.palette");
             if (s.palette == null) s.palette = java.util.List.of();
             return s;

@@ -17,11 +17,6 @@ import org.bukkit.plugin.java.JavaPlugin;
 import java.util.ArrayList;
 import java.util.List;
 
-/**
- * Effect type editor for BuilderSession.
- * - Click a type to ADD it
- * - Shift-click a type to REMOVE it
- */
 public class BuilderTypesMenu implements Listener {
 
     private static final String TITLE = ChatColor.DARK_AQUA + "" + "Type Editor";

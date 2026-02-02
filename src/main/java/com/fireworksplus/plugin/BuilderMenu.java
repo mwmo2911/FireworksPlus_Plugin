@@ -4,14 +4,19 @@ import org.bukkit.Bukkit;
 import org.bukkit.ChatColor;
 import org.bukkit.Location;
 import org.bukkit.Material;
+import org.bukkit.NamespacedKey;
 import org.bukkit.entity.Player;
 import org.bukkit.event.EventHandler;
 import org.bukkit.event.Listener;
+import org.bukkit.event.block.Action;
 import org.bukkit.event.inventory.ClickType;
 import org.bukkit.event.inventory.InventoryClickEvent;
+import org.bukkit.event.player.PlayerInteractEvent;
 import org.bukkit.inventory.Inventory;
 import org.bukkit.inventory.ItemStack;
 import org.bukkit.inventory.meta.ItemMeta;
+import org.bukkit.persistence.PersistentDataContainer;
+import org.bukkit.persistence.PersistentDataType;
 import org.bukkit.plugin.java.JavaPlugin;
 
 import java.util.ArrayList;
@@ -19,11 +24,12 @@ import java.util.List;
 
 public class BuilderMenu implements Listener {
 
-    private static final String TITLE = ChatColor.AQUA + "" + "Show Builder";
+    private static final String TITLE = ChatColor.AQUA + "" + ChatColor.BOLD + "Show Builder";
 
     private final JavaPlugin plugin;
     private final BuilderManager builderManager;
     private final ShowStorage storage;
+    private final NamespacedKey keyPointTool;
 
     private BuilderChatListener chatListener; // injected after creation
     private BuilderColorsMenu colorsMenu;     // injected after creation
@@ -34,6 +40,7 @@ public class BuilderMenu implements Listener {
         this.plugin = plugin;
         this.builderManager = builderManager;
         this.storage = storage;
+        this.keyPointTool = new NamespacedKey(plugin, "builder_point_tool");
     }
 
     public JavaPlugin getPlugin() {
@@ -66,9 +73,15 @@ public class BuilderMenu implements Listener {
                 List.of(ChatColor.GRAY + "Click to set via chat")));
 
         inv.setItem(10, button(Material.BLAZE_ROD,
-                ChatColor.AQUA + "Add Point",
-                List.of(ChatColor.GRAY + "Adds your current location",
-                        ChatColor.DARK_GRAY + "Points: " + ChatColor.GRAY + s.points.size())));
+                ChatColor.AQUA + (s.collectingPoints ? "Finish Points" : "Add Points"),
+                List.of(
+                        ChatColor.GRAY + (s.collectingPoints
+                                ? "Click to finish point setup"
+                                : "Click to get a point tool"),
+                        ChatColor.GRAY + "Right-click with the tool",
+                        ChatColor.DARK_GRAY + "Points: " + ChatColor.GRAY + s.points.size(),
+                        ChatColor.DARK_GRAY + "Collecting: " + ChatColor.GRAY + (s.collectingPoints ? "Yes" : "No")
+                )));
 
         inv.setItem(11, button(Material.BARRIER,
                 ChatColor.RED + "Remove Last Point",
@@ -103,6 +116,10 @@ public class BuilderMenu implements Listener {
                 ChatColor.AQUA + "Palette: " + ChatColor.WHITE + s.palette.size(),
                 paletteLore(s.palette),
                 paletteIcon()));
+
+        inv.setItem(18, button(Material.GLOWSTONE_DUST,
+                ChatColor.AQUA + "Particles: " + ChatColor.WHITE + (s.particleTrail ? "On" : "Off"),
+                List.of(ChatColor.GRAY + "Toggle trailing particles")));
 
         inv.setItem(25, button(Material.EMERALD,
                 ChatColor.GREEN + "Save Show",
@@ -145,12 +162,23 @@ public class BuilderMenu implements Listener {
         }
 
         if (slot == 10) { // add point
-            Location loc = p.getLocation().clone();
-            loc.setYaw(0);
-            loc.setPitch(0);
-            s.points.add(loc);
-            p.sendMessage(ChatColor.GREEN + "Point added. Total: " + ChatColor.WHITE + s.points.size());
-            open(p);
+            if (!s.collectingPoints) {
+                if (p.getInventory().firstEmpty() == -1) {
+                    p.sendMessage(ChatColor.RED + "Your inventory is full. Empty a slot to receive the point tool.");
+                    return;
+                }
+                p.getInventory().addItem(pointTool());
+                s.collectingPoints = true;
+                p.closeInventory();
+                p.sendMessage(ChatColor.AQUA + "Point tool given.");
+                p.sendMessage(ChatColor.GRAY + "Right-click with the tool to add points.");
+                p.sendMessage(ChatColor.GRAY + "Open the builder and click \"Finish Points\" when done.");
+            } else {
+                removePointTools(p);
+                s.collectingPoints = false;
+                p.sendMessage(ChatColor.YELLOW + "Point setup finished. Total: " + ChatColor.WHITE + s.points.size());
+                open(p);
+            }
             return;
         }
 
@@ -176,36 +204,7 @@ public class BuilderMenu implements Listener {
             return;
         }
 
-        if (slot == 13) { // interval +/- 1 tick
-            if (e.getClick() == ClickType.LEFT) s.intervalTicks += 1;
-            else if (e.getClick() == ClickType.RIGHT) s.intervalTicks -= 1;
-
-            int min = plugin.getConfig().getInt("limits.min_interval_ticks", 4);
-            s.intervalTicks = clamp(s.intervalTicks, min, 60);
-
-            open(p);
-            return;
-        }
-
-        if (slot == 14) { // radius +/- 0.2
-            if (e.getClick() == ClickType.LEFT) s.radius += 0.2;
-            else if (e.getClick() == ClickType.RIGHT) s.radius -= 0.2;
-
-            s.radius = clampDouble(s.radius, 0.5, 8.0);
-
-            open(p);
-            return;
-        }
-
-        if (slot == 15) { // power min/max
-            ClickType c = e.getClick();
-
-            if (c == ClickType.LEFT) s.powerMax++;
-            else if (c == ClickType.RIGHT) s.powerMax--;
-            else if (c == ClickType.SHIFT_LEFT) s.powerMin++;
-            else if (c == ClickType.SHIFT_RIGHT) s.powerMin--;
-
-            s.powerMin = clamp(s.powerMin, 0, 5);
+        @@ -209,102 +237,170 @@ public class BuilderMenu implements Listener {
             s.powerMax = clamp(s.powerMax, 0, 5);
             if (s.powerMax < s.powerMin) s.powerMax = s.powerMin;
 
@@ -231,6 +230,12 @@ public class BuilderMenu implements Listener {
             return;
         }
 
+        if (slot == 18) { // particles
+            s.particleTrail = !s.particleTrail;
+            open(p);
+            return;
+        }
+
         if (slot == 25) { // save
             if (s.name == null || s.name.trim().isEmpty()) {
                 p.sendMessage(ChatColor.RED + "Set a name first.");
@@ -249,14 +254,37 @@ public class BuilderMenu implements Listener {
             d.powerMax = s.powerMax;
             d.fireworkTypes = new ArrayList<>(s.fireworkTypes);
             d.palette = new ArrayList<>(s.palette);
+            d.particleTrail = s.particleTrail;
             d.points.addAll(s.points);
 
             storage.saveCustomShow(d, p);
             builderManager.clear(p);
+            removePointTools(p);
 
             p.sendMessage(ChatColor.GREEN + "Custom show saved: " + ChatColor.WHITE + d.name);
             p.closeInventory();
         }
+    }
+
+    @EventHandler
+    public void onPointToolUse(PlayerInteractEvent e) {
+        if (!(e.getPlayer() instanceof Player p)) return;
+        if (e.getAction() != Action.RIGHT_CLICK_AIR && e.getAction() != Action.RIGHT_CLICK_BLOCK) return;
+
+        BuilderSession s = builderManager.get(p);
+        if (s == null || !s.collectingPoints) return;
+
+        ItemStack item = e.getItem();
+        if (item == null || item.getType() != Material.BLAZE_ROD) return;
+        if (!isPointTool(item)) return;
+
+        e.setCancelled(true);
+
+        Location loc = p.getLocation().clone();
+        loc.setYaw(0);
+        loc.setPitch(0);
+        s.points.add(loc);
+        p.sendMessage(ChatColor.GREEN + "Point added. Total: " + ChatColor.WHITE + s.points.size());
     }
 
     private int clamp(int v, int min, int max) {
@@ -306,5 +334,44 @@ public class BuilderMenu implements Listener {
 
     private ItemStack paletteIcon() {
         return new ItemStack(Material.INK_SAC);
+    }
+
+    private ItemStack pointTool() {
+        ItemStack it = new ItemStack(Material.BLAZE_ROD);
+        ItemMeta meta = it.getItemMeta();
+        if (meta != null) {
+            meta.setDisplayName(ChatColor.AQUA + "Point Tool");
+            meta.setLore(List.of(
+                    ChatColor.GRAY + "Right-click to add a point",
+                    ChatColor.DARK_GRAY + "Open builder to finish"
+            ));
+            meta.getPersistentDataContainer().set(keyPointTool, PersistentDataType.BYTE, (byte) 1);
+            it.setItemMeta(meta);
+        }
+        return it;
+    }
+
+    private boolean isPointTool(ItemStack item) {
+        ItemMeta meta = item.getItemMeta();
+        if (meta == null) return false;
+        PersistentDataContainer pdc = meta.getPersistentDataContainer();
+        Byte val = pdc.get(keyPointTool, PersistentDataType.BYTE);
+        return val != null && val == (byte) 1;
+    }
+
+    private void removePointTools(Player p) {
+        ItemStack[] contents = p.getInventory().getContents();
+        for (int i = 0; i < contents.length; i++) {
+            ItemStack item = contents[i];
+            if (item == null || item.getType() != Material.BLAZE_ROD) continue;
+            if (!isPointTool(item)) continue;
+            contents[i] = null;
+        }
+        p.getInventory().setContents(contents);
+
+        ItemStack offhand = p.getInventory().getItemInOffHand();
+        if (offhand != null && offhand.getType() == Material.BLAZE_ROD && isPointTool(offhand)) {
+            p.getInventory().setItemInOffHand(null);
+        }
     }
 }

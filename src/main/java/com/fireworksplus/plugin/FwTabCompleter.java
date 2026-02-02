@@ -28,7 +28,6 @@ public class FwTabCompleter implements TabCompleter {
 
         if (!(sender instanceof Player player)) return List.of();
 
-        // First argument: subcommands
         if (args.length == 1) {
             List<String> subs = new ArrayList<>();
             subs.add("help");
@@ -42,10 +41,13 @@ public class FwTabCompleter implements TabCompleter {
             subs.add("save");
             subs.add("version");
 
-            if (player.hasPermission("fireworksplus.admin")) {
+            if (hasPermission(player, "fireworksplus.admin.schedule")) {
                 subs.add("schedule");
                 subs.add("schedules");
                 subs.add("unschedule");
+            }
+
+            if (hasPermission(player, "fireworksplus.admin.reload")) {
                 subs.add("reload");
             }
 
@@ -54,18 +56,14 @@ public class FwTabCompleter implements TabCompleter {
 
         String sub = args[0].toLowerCase(Locale.ROOT);
 
-        // /fw play <show> , /fw info <show> , /fw schedule <show> ...
         if ((sub.equals("play") || sub.equals("info") || sub.equals("schedule")) && args.length == 2) {
             return filterPrefix(allShows(), args[1]);
         }
 
-        // /fw unschedule <id>
         if (sub.equals("unschedule") && args.length == 2) {
             return filterPrefix(scheduleIds(), args[1]);
         }
 
-        // /fw schedule <show> <date> <time>
-        // We do not guess date/time here (too messy), but we can hint format
         if (sub.equals("schedule") && args.length == 3) {
             return List.of("yyyy-MM-dd");
         }
@@ -86,20 +84,14 @@ public class FwTabCompleter implements TabCompleter {
 
         out.addAll(storage.listCustomShows());
 
-        // Optional: online players as targets (if you later add /fw play <show> <player>)
-        // out.addAll(Bukkit.getOnlinePlayers().stream().map(Player::getName).toList());
-
         return out.stream().distinct().collect(Collectors.toList());
     }
 
     private List<String> scheduleIds() {
-        // We extract ids from the pretty list: [STATUS] id | ...
         List<String> lines = schedule.listSchedulesPretty();
         List<String> ids = new ArrayList<>();
         for (String line : lines) {
-            // Strip colors and parse safely
             String plain = org.bukkit.ChatColor.stripColor(line);
-            // Expect: [DONE] 1234abcd | ...
             String[] parts = plain.split("\\s+");
             if (parts.length >= 2) ids.add(parts[1]);
         }
@@ -112,5 +104,9 @@ public class FwTabCompleter implements TabCompleter {
                 .filter(s -> s.toLowerCase(Locale.ROOT).startsWith(prefix))
                 .sorted()
                 .collect(Collectors.toList());
+    }
+
+    private boolean hasPermission(Player player, String node) {
+        return player.hasPermission("fireworksplus.*") || player.hasPermission(node);
     }
 }

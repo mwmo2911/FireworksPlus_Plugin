@@ -3,6 +3,7 @@ package com.fireworksplus.plugin;
 import org.bukkit.Color;
 import org.bukkit.FireworkEffect;
 import org.bukkit.Location;
+import org.bukkit.Particle;
 import org.bukkit.Sound;
 import org.bukkit.World;
 import org.bukkit.configuration.ConfigurationSection;
@@ -27,7 +28,6 @@ public class ShowService {
         this.plugin = plugin;
     }
 
-    /** Built-in show for player at player's location (respects runtime policy). Returns null if started, otherwise reason. */
     public String playShow(Player player, String showId) {
         String policy = checkPolicy(player);
         if (policy != null) return policy;
@@ -39,12 +39,10 @@ public class ShowService {
         return null;
     }
 
-    /** Built-in show at location (no player policy). Used by schedules. */
     public boolean playBuiltInScheduled(Location at, String showId) {
         return playBuiltInAt(at, showId) != null;
     }
 
-    /** Custom show from multiple points (respects runtime policy). Returns null if started, otherwise reason. */
     public String playCustom(Player owner, DraftShow custom) {
         if (custom == null) return "Show not found.";
         if (custom.points.isEmpty()) return "Custom show has no points.";
@@ -57,7 +55,6 @@ public class ShowService {
         return null;
     }
 
-    /** Custom show scheduled (no player policy). */
     public boolean playCustomScheduled(DraftShow custom) {
         if (custom == null || custom.points.isEmpty()) return false;
         runCustomPoints(custom, null);
@@ -72,8 +69,6 @@ public class ShowService {
         }
         return false;
     }
-
-    // ---------------- Policy & tracking ----------------
 
     private String checkPolicy(Player player) {
         int cooldownSec = plugin.getConfig().getInt("runtime.cooldown_seconds", 0);
@@ -115,8 +110,6 @@ public class ShowService {
         activeShow.remove(uuid);
     }
 
-    // ---------------- Built-in show runner ----------------
-
     private record Started(BukkitTask task) {}
 
     private Started playBuiltInAt(Location base, String showId) {
@@ -145,7 +138,6 @@ public class ShowService {
         final int finalInterval = interval;
         final Location fixedBase = base.clone();
 
-        // START SOUND
         playSoundSafe(fixedBase, plugin.getConfig().getString("sounds.start", ""));
 
         BukkitRunnable runnable = new BukkitRunnable() {
@@ -154,7 +146,6 @@ public class ShowService {
             @Override
             public void run() {
                 if (i >= total) {
-                    // END SOUND
                     playSoundSafe(fixedBase, plugin.getConfig().getString("sounds.end", ""));
                     cancel();
                     return;
@@ -172,7 +163,6 @@ public class ShowService {
                 meta.setPower(randInt(pMin, pMax));
                 fw.setFireworkMeta(meta);
 
-                // OPTIONAL SOUND PER FIREWORK
                 playSoundSafe(loc, plugin.getConfig().getString("sounds.each_firework", ""));
 
                 i++;
@@ -182,8 +172,6 @@ public class ShowService {
         BukkitTask task = runnable.runTaskTimer(plugin, 0L, finalInterval);
         return new Started(task);
     }
-
-    // ---------------- Custom points runner ----------------
 
     private BukkitTask runCustomPoints(DraftShow show, Player ownerOrNull) {
         int minInterval = plugin.getConfig().getInt("limits.min_interval_ticks", 4);
@@ -200,10 +188,8 @@ public class ShowService {
         List<Location> points = new ArrayList<>();
         for (Location l : show.points) points.add(l.clone());
 
-        // start/end location for sounds
         final Location first = points.get(0);
 
-        // START SOUND
         playSoundSafe(first, plugin.getConfig().getString("sounds.start", ""));
 
         BukkitRunnable runnable = new BukkitRunnable() {
@@ -243,6 +229,9 @@ public class ShowService {
                 meta.addEffect(effectFromPalette(show.palette, show.fireworkTypes));
                 meta.setPower(randInt(show.powerMin, show.powerMax));
                 fw.setFireworkMeta(meta);
+                if (show.particleTrail) {
+                    attachParticleTrail(fw, Particle.FIREWORKS_SPARK);
+                }
 
                 // OPTIONAL SOUND PER FIREWORK
                 playSoundSafe(loc, plugin.getConfig().getString("sounds.each_firework", ""));
@@ -253,8 +242,6 @@ public class ShowService {
 
         return runnable.runTaskTimer(plugin, 0L, finalInterval);
     }
-
-    // ---------------- Effects helpers ----------------
 
     private FireworkEffect randomEffectFromPalette(List<String> palette) {
         return effectFromPalette(palette, null);
@@ -281,7 +268,6 @@ public class ShowService {
                 try {
                     return FireworkEffect.Type.valueOf(raw.toUpperCase());
                 } catch (IllegalArgumentException ignored) {
-                    // fall through to random
                 }
             }
         }
@@ -331,5 +317,30 @@ public class ShowService {
         }
 
         at.getWorld().playSound(at, s, vol, pitch);
+    }
+
+    private void attachParticleTrail(Firework firework, Particle particle) {
+        if (firework == null || particle == null) return;
+        new BukkitRunnable() {
+            int ticks = 0;
+
+            @Override
+            public void run() {
+                if (!firework.isValid() || firework.isDead()) {
+                    cancel();
+                    return;
+                }
+
+                Location loc = firework.getLocation();
+                if (loc.getWorld() != null) {
+                    loc.getWorld().spawnParticle(particle, loc, 2, 0.05, 0.05, 0.05, 0.0);
+                }
+
+                ticks++;
+                if (ticks > 80) {
+                    cancel();
+                }
+            }
+        }.runTaskTimer(plugin, 0L, 1L);
     }
 }

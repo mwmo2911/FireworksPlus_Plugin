@@ -53,7 +53,7 @@ public class ScheduleManager {
         String base = "jobs." + id;
         if (!yaml.contains(base)) return false;
 
-        yaml.set(base, null); // delete whole section
+        yaml.set(base, null);
         saveFile();
         return true;
     }
@@ -62,9 +62,6 @@ public class ScheduleManager {
         try { yaml.save(file); } catch (IOException ignored) {}
     }
 
-    /**
-     * @return null if OK, otherwise error message
-     */
     public String addSchedule(String showId, Location at, String date, String time) {
         if (at == null || at.getWorld() == null) return "Invalid location.";
 
@@ -153,8 +150,6 @@ public class ScheduleManager {
             }
         }
     }
-
-    // ---------------- NEW: pretty lists ----------------
 
     public List<String> listSchedulesPretty() {
         ConfigurationSection sec = yaml.getConfigurationSection("jobs");

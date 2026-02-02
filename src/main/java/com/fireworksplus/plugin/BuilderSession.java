@@ -5,10 +5,6 @@ import org.bukkit.Location;
 import java.util.ArrayList;
 import java.util.List;
 
-/**
- * In-memory GUI builder state for a single player.
- * This is intentionally mutable (unlike DraftShow).
- */
 public class BuilderSession {
 
     public String name = "myshow";
@@ -25,4 +21,8 @@ public class BuilderSession {
     public List<String> fireworkTypes = new ArrayList<>(List.of(org.bukkit.FireworkEffect.Type.BALL.name()));
 
     public List<String> palette = new ArrayList<>();
+
+    public boolean particleTrail = false;
+
+    public boolean collectingPoints = false;
 }

@@ -12,9 +12,6 @@ import java.util.HashSet;
 import java.util.Set;
 import java.util.UUID;
 
-/**
- * Captures chat input for the Builder GUI (name input).
- */
 public class BuilderChatListener implements Listener {
 
     private final JavaPlugin plugin;
