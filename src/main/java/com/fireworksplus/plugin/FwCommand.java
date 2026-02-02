@@ -52,9 +52,6 @@ public class FwCommand implements CommandExecutor {
             return true;
         }
 
-        /* =======================
-           /fw  → open GUI
-           ======================= */
         if (args.length == 0) {
             if (mainMenu != null) {
                 mainMenu.open(player);
@@ -66,25 +63,16 @@ public class FwCommand implements CommandExecutor {
 
         String sub = args[0];
 
-        /* =======================
-           /fw help
-           ======================= */
         if ("help".equalsIgnoreCase(sub)) {
             sendHelp(player);
             return true;
         }
 
-        /* =======================
-           /fw version
-           ======================= */
         if ("version".equalsIgnoreCase(sub) || "ver".equalsIgnoreCase(sub)) {
             sendVersionBox(player);
             return true;
         }
 
-        /* =======================
-           /fw reload
-           ======================= */
         if ("reload".equalsIgnoreCase(sub)) {
             if (!hasPermission(player, "fireworksplus.admin.reload")) {
                 player.sendMessage(ChatColor.RED + "No permission.");
@@ -98,9 +86,6 @@ public class FwCommand implements CommandExecutor {
             return true;
         }
 
-        /* =======================
-           /fw stop
-           ======================= */
         if ("stop".equalsIgnoreCase(sub)) {
             boolean stopped = shows.stopShow(player);
             player.sendMessage(stopped
@@ -109,17 +94,34 @@ public class FwCommand implements CommandExecutor {
             return true;
         }
 
-        /* =======================
-           /fw list
-           ======================= */
         if ("list".equalsIgnoreCase(sub)) {
             sendShowList(player);
             return true;
         }
 
-        /* =======================
-           /fw info <show>
-           ======================= */
+        if ("edit".equalsIgnoreCase(sub)) {
+            if (!hasPermission(player, "fireworksplus.builder")) {
+                player.sendMessage(ChatColor.RED + "No permission.");
+                return true;
+            }
+            if (args.length < 2) {
+                player.sendMessage(ChatColor.RED + "Usage: " + ChatColor.WHITE + "/fw edit <show>");
+                return true;
+            }
+
+            String showId = resolveCustomShowId(args[1]);
+            if (showId == null) {
+                player.sendMessage(ChatColor.RED + "Custom show not found: " + ChatColor.WHITE + args[1]);
+                return true;
+            }
+
+            boolean opened = menu.editCustom(player, showId);
+            if (!opened) {
+                player.sendMessage(ChatColor.RED + "Custom show not found: " + ChatColor.WHITE + args[1]);
+            }
+            return true;
+        }
+
         if ("info".equalsIgnoreCase(sub)) {
             if (args.length < 2) {
                 player.sendMessage(ChatColor.RED + "Usage: " + ChatColor.WHITE + "/fw info <show>");
@@ -137,9 +139,6 @@ public class FwCommand implements CommandExecutor {
             return true;
         }
 
-        /* =======================
-           /fw play <show>
-           ======================= */
         if ("play".equalsIgnoreCase(sub)) {
             if (args.length < 2) {
                 sendShowList(player);
@@ -176,9 +175,6 @@ public class FwCommand implements CommandExecutor {
             return true;
         }
 
-        /* =======================
-           /fw schedule <show> <yyyy-MM-dd> <HH:mm>
-           ======================= */
         if ("schedule".equalsIgnoreCase(sub)) {
             if (!hasPermission(player, "fireworksplus.admin.schedule")) {
                 player.sendMessage(ChatColor.RED + "No permission.");
@@ -206,9 +202,6 @@ public class FwCommand implements CommandExecutor {
             return true;
         }
 
-        /* =======================
-           /fw unschedule <id>
-           ======================= */
         if ("unschedule".equalsIgnoreCase(sub)) {
             if (!hasPermission(player, "fireworksplus.admin.schedule")) {
                 player.sendMessage(ChatColor.RED + "No permission.");
@@ -228,9 +221,6 @@ public class FwCommand implements CommandExecutor {
             return true;
         }
 
-        /* =======================
-           /fw schedules
-           ======================= */
         if ("schedules".equalsIgnoreCase(sub)) {
             if (!hasPermission(player, "fireworksplus.admin.schedule")) {
                 player.sendMessage(ChatColor.RED + "No permission.");
@@ -248,9 +238,6 @@ public class FwCommand implements CommandExecutor {
             return true;
         }
 
-        /* =======================
-           /fw delete <show>
-           ======================= */
         if ("delete".equalsIgnoreCase(sub)) {
             if (!hasPermission(player, "fireworksplus.admin.delete")) {
                 player.sendMessage(ChatColor.RED + "No permission.");
@@ -280,17 +267,11 @@ public class FwCommand implements CommandExecutor {
             return true;
         }
 
-        /* =======================
-           fallback
-           ======================= */
         player.sendMessage(ChatColor.RED + "Unknown subcommand.");
         sendHelp(player);
         return true;
     }
 
-    /* =====================================================
-       VERSION TEXT
-       ===================================================== */
     private void sendVersionBox(Player p) {
         String line1 =
                 ChatColor.GOLD + "FireworksPlus " +
@@ -310,6 +291,9 @@ public class FwCommand implements CommandExecutor {
         p.sendMessage(ChatColor.YELLOW + "/fw help" + ChatColor.WHITE + " - Show this help list");
         p.sendMessage(ChatColor.YELLOW + "/fw play <show>" + ChatColor.WHITE + " - Start a show");
         p.sendMessage(ChatColor.YELLOW + "/fw info <show>" + ChatColor.WHITE + " - Show details for a show");
+        if (hasPermission(p, "fireworksplus.builder")) {
+            p.sendMessage(ChatColor.YELLOW + "/fw edit <show>" + ChatColor.WHITE + " - Edit a custom show");
+        }
         p.sendMessage(ChatColor.YELLOW + "/fw list" + ChatColor.WHITE + " - List all shows");
         p.sendMessage(ChatColor.YELLOW + "/fw stop" + ChatColor.WHITE + " - Stop the running show");
         p.sendMessage(ChatColor.YELLOW + "/fw version" + ChatColor.WHITE + " - Show plugin version");
@@ -369,6 +353,7 @@ public class FwCommand implements CommandExecutor {
         player.sendMessage(ChatColor.GRAY + "Radius: " + ChatColor.WHITE + custom.radius);
         player.sendMessage(ChatColor.GRAY + "Power: " + ChatColor.WHITE + custom.powerMin + "-" + custom.powerMax);
         player.sendMessage(ChatColor.GRAY + "Type: " + ChatColor.WHITE + formatTypes(custom.fireworkTypes));
+        player.sendMessage(ChatColor.GRAY + "Particles: " + ChatColor.WHITE + formatParticles(custom));
         player.sendMessage(ChatColor.GRAY + "Points: " + ChatColor.WHITE + custom.points.size());
         if (!custom.palette.isEmpty()) {
             player.sendMessage(ChatColor.GRAY + "Palette: " + ChatColor.WHITE + String.join(", ", custom.palette));
@@ -389,6 +374,7 @@ public class FwCommand implements CommandExecutor {
         int pMin = sec.getInt("power_min", 1);
         int pMax = sec.getInt("power_max", 2);
         List<String> palette = sec.getStringList("palette");
+        List<String> particles = sec.getStringList("particles");
 
         player.sendMessage(ChatColor.AQUA + "Built-in show: " + ChatColor.WHITE + ChatColor.translateAlternateColorCodes('&', display));
         player.sendMessage(ChatColor.GRAY + "ID: " + ChatColor.WHITE + showId);
@@ -399,12 +385,22 @@ public class FwCommand implements CommandExecutor {
         if (!palette.isEmpty()) {
             player.sendMessage(ChatColor.GRAY + "Palette: " + ChatColor.WHITE + String.join(", ", palette));
         }
+        if (particles != null && !particles.isEmpty()) {
+            player.sendMessage(ChatColor.GRAY + "Particles: " + ChatColor.WHITE + String.join(", ", particles));
+        }
     }
 
     private String formatTypes(List<String> types) {
         if (types == null || types.isEmpty()) return "Random";
         if (types.size() == 1) return types.get(0).replace("_", " ");
         return String.join(", ", types.stream().map(t -> t.replace("_", " ")).collect(java.util.stream.Collectors.toList()));
+    }
+
+    private String formatParticles(DraftShow show) {
+        if (show.trailParticles != null && !show.trailParticles.isEmpty()) {
+            return String.join(", ", show.trailParticles);
+        }
+        return show.particleTrail ? "On" : "Off";
     }
 
     private String resolveShowId(String input) {
@@ -428,6 +424,17 @@ public class FwCommand implements CommandExecutor {
             }
         }
 
+        return null;
+    }
+
+    private String resolveCustomShowId(String input) {
+        if (input == null || input.isBlank()) return null;
+        String normalized = normalize(input);
+        for (String key : storage.listCustomShows()) {
+            if (normalize(key).equals(normalized)) {
+                return key;
+            }
+        }
         return null;
     }
 

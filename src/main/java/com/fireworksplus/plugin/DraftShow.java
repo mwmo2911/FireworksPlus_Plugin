@@ -20,6 +20,10 @@ public class DraftShow {
 
     public List<String> palette = new ArrayList<>();
 
+    public List<String> trailParticles = new ArrayList<>();
+
+    public boolean particleTrail = false;
+
     public DraftShow(String name) {
         this.name = name;
     }

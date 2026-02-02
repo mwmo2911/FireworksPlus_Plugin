@@ -28,7 +28,6 @@ public class ShowStorage {
         reload();
     }
 
-    /** Deletes a custom show by id or name (normalized). Returns true if it existed and was removed. */
     public boolean deleteCustomShow(String idOrName) {
         String id = normalizeId(idOrName);
         String base = "custom." + id;
@@ -75,6 +74,8 @@ public class ShowStorage {
         yaml.set(base + ".powerMax", d.powerMax);
         yaml.set(base + ".effectTypes", d.fireworkTypes);
         yaml.set(base + ".palette", d.palette);
+        yaml.set(base + ".particleTrail", d.particleTrail);
+        yaml.set(base + ".trailParticles", d.trailParticles);
 
         List<Map<String, Object>> pts = new ArrayList<>();
         for (Location loc : d.points) {
@@ -110,6 +111,11 @@ public class ShowStorage {
         }
         d.fireworkTypes = new ArrayList<>(types);
         d.palette = yaml.getStringList(base + ".palette");
+        d.particleTrail = yaml.getBoolean(base + ".particleTrail", false);
+        List<String> trailParticles = yaml.getStringList(base + ".trailParticles");
+        if (trailParticles != null && !trailParticles.isEmpty()) {
+            d.trailParticles = new ArrayList<>(trailParticles);
+        }
 
         List<?> list = yaml.getList(base + ".points", List.of());
         for (Object o : list) {

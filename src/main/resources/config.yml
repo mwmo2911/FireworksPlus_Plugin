@@ -8,6 +8,12 @@ runtime:
   allow_simultaneous_shows: false
   cancel_previous_show: true
 
+update_checker:
+  enabled: false
+  resource_id: 0
+  cache_minutes: 60
+  notify_permission: "fireworksplus.admin.update"
+
 scheduling:
   enabled: true
   poll_seconds: 20
@@ -36,6 +42,17 @@ sounds:
   volume: 1.0
   pitch: 1.0
 
+particles:
+  trail_type: "FIREWORKS_SPARK"
+options:
+  - "FIREWORKS_SPARK"
+  - "END_ROD"
+  - "VILLAGER_HAPPY"
+  - "CRIT"
+  - "CLOUD"
+  - "ENCHANT"
+  point_marker: "END_ROD"
+
 shows:
   Celebration:
     display: "&eCelebration"
@@ -46,6 +63,7 @@ shows:
     power_min: 1
     power_max: 2
     palette: ["#FF3B30","#FFD60A","#34C759","#0A84FF","#FFFFFF"]
+    particles: ["FIREWORKS_SPARK", "VILLAGER_HAPPY"]
 
   Royal:
     display: "&dRoyal"
@@ -56,6 +74,7 @@ shows:
     power_min: 1
     power_max: 2
     palette: ["#BF5AF2","#FFD60A","#0A84FF","#FFFFFF"]
+    particles: ["END_ROD"]
 
   Chaos:
     display: "&cChaos"

@@ -4,14 +4,19 @@ import org.bukkit.Bukkit;
 import org.bukkit.ChatColor;
 import org.bukkit.Location;
 import org.bukkit.Material;
+import org.bukkit.NamespacedKey;
 import org.bukkit.entity.Player;
 import org.bukkit.event.EventHandler;
 import org.bukkit.event.Listener;
+import org.bukkit.event.block.Action;
 import org.bukkit.event.inventory.ClickType;
 import org.bukkit.event.inventory.InventoryClickEvent;
+import org.bukkit.event.player.PlayerInteractEvent;
 import org.bukkit.inventory.Inventory;
 import org.bukkit.inventory.ItemStack;
 import org.bukkit.inventory.meta.ItemMeta;
+import org.bukkit.persistence.PersistentDataContainer;
+import org.bukkit.persistence.PersistentDataType;
 import org.bukkit.plugin.java.JavaPlugin;
 
 import java.util.ArrayList;
@@ -19,21 +24,28 @@ import java.util.List;
 
 public class BuilderMenu implements Listener {
 
-    private static final String TITLE = ChatColor.AQUA + "" + "Show Builder";
+    private static final String TITLE = ChatColor.AQUA + "" + ChatColor.BOLD + "Show Builder";
 
     private final JavaPlugin plugin;
     private final BuilderManager builderManager;
     private final ShowStorage storage;
+    private final NamespacedKey keyPointTool;
 
-    private BuilderChatListener chatListener; // injected after creation
-    private BuilderColorsMenu colorsMenu;     // injected after creation
-    private BuilderTypesMenu typesMenu;       // injected after creation
-    private MainMenu mainMenu;               // injected after creation
+    private BuilderChatListener chatListener;
+    private BuilderColorsMenu colorsMenu;
+    private BuilderTypesMenu typesMenu;
+    private MainMenu mainMenu;
+    private BuilderParticlesMenu particlesMenu;
+
+    public void setParticlesMenu(BuilderParticlesMenu particlesMenu) {
+        this.particlesMenu = particlesMenu;
+    }
 
     public BuilderMenu(JavaPlugin plugin, BuilderManager builderManager, ShowStorage storage) {
         this.plugin = plugin;
         this.builderManager = builderManager;
         this.storage = storage;
+        this.keyPointTool = new NamespacedKey(plugin, "builder_point_tool");
     }
 
     public JavaPlugin getPlugin() {
@@ -66,9 +78,15 @@ public class BuilderMenu implements Listener {
                 List.of(ChatColor.GRAY + "Click to set via chat")));
 
         inv.setItem(10, button(Material.BLAZE_ROD,
-                ChatColor.AQUA + "Add Point",
-                List.of(ChatColor.GRAY + "Adds your current location",
-                        ChatColor.DARK_GRAY + "Points: " + ChatColor.GRAY + s.points.size())));
+                ChatColor.AQUA + (s.collectingPoints ? "Finish Points" : "Add Points"),
+                List.of(
+                        ChatColor.GRAY + (s.collectingPoints
+                                ? "Click to finish point setup"
+                                : "Click to get a point tool"),
+                        ChatColor.GRAY + "Right-click with the tool",
+                        ChatColor.DARK_GRAY + "Points: " + ChatColor.GRAY + s.points.size(),
+                        ChatColor.DARK_GRAY + "Collecting: " + ChatColor.GRAY + (s.collectingPoints ? "Yes" : "No")
+                )));
 
         inv.setItem(11, button(Material.BARRIER,
                 ChatColor.RED + "Remove Last Point",
@@ -104,6 +122,10 @@ public class BuilderMenu implements Listener {
                 paletteLore(s.palette),
                 paletteIcon()));
 
+        inv.setItem(18, button(Material.GLOWSTONE_DUST,
+                ChatColor.AQUA + "Particles: " + ChatColor.WHITE + (s.particleTrail ? "On" : "Off"),
+                List.of(ChatColor.GRAY + "Toggle trailing particles")));
+
         inv.setItem(25, button(Material.EMERALD,
                 ChatColor.GREEN + "Save Show",
                 List.of(ChatColor.GRAY + "Saves your custom show to the list",
@@ -127,7 +149,7 @@ public class BuilderMenu implements Listener {
 
         BuilderSession s = builderManager.getOrCreate(p);
 
-        if (slot == 26) { // back
+        if (slot == 26) {
             p.closeInventory();
             if (mainMenu != null) {
                 Bukkit.getScheduler().runTask(plugin, () -> mainMenu.open(p));
@@ -137,24 +159,35 @@ public class BuilderMenu implements Listener {
             return;
         }
 
-        if (slot == 9) { // set name
+        if (slot == 9) {
             p.closeInventory();
             p.sendMessage(ChatColor.AQUA + "Type the show name in chat (max 24 chars).");
             if (chatListener != null) chatListener.requestName(p);
             return;
         }
 
-        if (slot == 10) { // add point
-            Location loc = p.getLocation().clone();
-            loc.setYaw(0);
-            loc.setPitch(0);
-            s.points.add(loc);
-            p.sendMessage(ChatColor.GREEN + "Point added. Total: " + ChatColor.WHITE + s.points.size());
-            open(p);
+        if (slot == 10) {
+            if (!s.collectingPoints) {
+                if (p.getInventory().firstEmpty() == -1) {
+                    p.sendMessage(ChatColor.RED + "Your inventory is full. Empty a slot to receive the point tool.");
+                    return;
+                }
+                p.getInventory().addItem(pointTool());
+                s.collectingPoints = true;
+                p.closeInventory();
+                p.sendMessage(ChatColor.AQUA + "Point tool given.");
+                p.sendMessage(ChatColor.GRAY + "Right-click with the tool to add points.");
+                p.sendMessage(ChatColor.GRAY + "Open the builder and click \"Finish Points\" when done.");
+            } else {
+                removePointTools(p);
+                s.collectingPoints = false;
+                p.sendMessage(ChatColor.YELLOW + "Point setup finished. Total: " + ChatColor.WHITE + s.points.size());
+                open(p);
+            }
             return;
         }
 
-        if (slot == 11) { // remove last point
+        if (slot == 11) {
             if (!s.points.isEmpty()) {
                 s.points.remove(s.points.size() - 1);
                 p.sendMessage(ChatColor.YELLOW + "Last point removed. Total: " + ChatColor.WHITE + s.points.size());
@@ -165,7 +198,7 @@ public class BuilderMenu implements Listener {
             return;
         }
 
-        if (slot == 12) { // duration +/- 5s
+        if (slot == 12) {
             if (e.getClick() == ClickType.LEFT) s.durationSeconds += 5;
             else if (e.getClick() == ClickType.RIGHT) s.durationSeconds -= 5;
 
@@ -176,7 +209,7 @@ public class BuilderMenu implements Listener {
             return;
         }
 
-        if (slot == 13) { // interval +/- 1 tick
+        if (slot == 13) {
             if (e.getClick() == ClickType.LEFT) s.intervalTicks += 1;
             else if (e.getClick() == ClickType.RIGHT) s.intervalTicks -= 1;
 
@@ -187,7 +220,7 @@ public class BuilderMenu implements Listener {
             return;
         }
 
-        if (slot == 14) { // radius +/- 0.2
+        if (slot == 14) {
             if (e.getClick() == ClickType.LEFT) s.radius += 0.2;
             else if (e.getClick() == ClickType.RIGHT) s.radius -= 0.2;
 
@@ -197,7 +230,7 @@ public class BuilderMenu implements Listener {
             return;
         }
 
-        if (slot == 15) { // power min/max
+        if (slot == 15) {
             ClickType c = e.getClick();
 
             if (c == ClickType.LEFT) s.powerMax++;
@@ -213,7 +246,7 @@ public class BuilderMenu implements Listener {
             return;
         }
 
-        if (slot == 16) { // firework types
+        if (slot == 16) {
             if (typesMenu == null) {
                 p.sendMessage(ChatColor.RED + "Types menu is not registered.");
                 return;
@@ -222,7 +255,7 @@ public class BuilderMenu implements Listener {
             return;
         }
 
-        if (slot == 17) { // palette
+        if (slot == 17) {
             if (colorsMenu == null) {
                 p.sendMessage(ChatColor.RED + "Colors menu is not registered.");
                 return;
@@ -231,7 +264,13 @@ public class BuilderMenu implements Listener {
             return;
         }
 
-        if (slot == 25) { // save
+        if (slot == 18) {
+            s.particleTrail = !s.particleTrail;
+            open(p);
+            return;
+        }
+
+        if (slot == 25) {
             if (s.name == null || s.name.trim().isEmpty()) {
                 p.sendMessage(ChatColor.RED + "Set a name first.");
                 return;
@@ -249,14 +288,64 @@ public class BuilderMenu implements Listener {
             d.powerMax = s.powerMax;
             d.fireworkTypes = new ArrayList<>(s.fireworkTypes);
             d.palette = new ArrayList<>(s.palette);
+            d.particleTrail = s.particleTrail;
             d.points.addAll(s.points);
 
             storage.saveCustomShow(d, p);
             builderManager.clear(p);
+            removePointTools(p);
 
             p.sendMessage(ChatColor.GREEN + "Custom show saved: " + ChatColor.WHITE + d.name);
             p.closeInventory();
         }
+    }
+
+    @EventHandler
+    public void onPointToolUse(PlayerInteractEvent e) {
+        if (!(e.getPlayer() instanceof Player p)) return;
+        if (e.getAction() != Action.RIGHT_CLICK_AIR && e.getAction() != Action.RIGHT_CLICK_BLOCK) return;
+
+        BuilderSession s = builderManager.get(p);
+        if (s == null || !s.collectingPoints) return;
+
+        ItemStack item = e.getItem();
+        if (item == null || item.getType() != Material.BLAZE_ROD) return;
+        if (!isPointTool(item)) return;
+
+        e.setCancelled(true);
+
+        Location loc = p.getLocation().clone();
+        loc.setYaw(0);
+        loc.setPitch(0);
+        s.points.add(loc);
+        p.sendMessage(ChatColor.GREEN + "Point added. Total: " + ChatColor.WHITE + s.points.size());
+    }
+
+    public void openForEdit(Player p, DraftShow show) {
+        if (p == null || show == null) return;
+
+        BuilderSession s = builderManager.getOrCreate(p);
+
+        s.name = show.name;
+        s.durationSeconds = show.durationSeconds;
+        s.intervalTicks = show.intervalTicks;
+        s.radius = show.radius;
+        s.powerMin = show.powerMin;
+        s.powerMax = show.powerMax;
+
+        s.palette.clear();
+        if (show.palette != null) s.palette.addAll(show.palette);
+
+        s.points.clear();
+        if (show.points != null) {
+            for (org.bukkit.Location loc : show.points) {
+                if (loc != null) s.points.add(loc.clone());
+            }
+        }
+
+        open(p);
+
+        p.sendMessage(ChatColor.AQUA + "Editing custom show: " + ChatColor.WHITE + show.name);
     }
 
     private int clamp(int v, int min, int max) {
@@ -306,5 +395,44 @@ public class BuilderMenu implements Listener {
 
     private ItemStack paletteIcon() {
         return new ItemStack(Material.INK_SAC);
+    }
+
+    private ItemStack pointTool() {
+        ItemStack it = new ItemStack(Material.BLAZE_ROD);
+        ItemMeta meta = it.getItemMeta();
+        if (meta != null) {
+            meta.setDisplayName(ChatColor.AQUA + "Point Tool");
+            meta.setLore(List.of(
+                    ChatColor.GRAY + "Right-click to add a point",
+                    ChatColor.DARK_GRAY + "Open builder to finish"
+            ));
+            meta.getPersistentDataContainer().set(keyPointTool, PersistentDataType.BYTE, (byte) 1);
+            it.setItemMeta(meta);
+        }
+        return it;
+    }
+
+    private boolean isPointTool(ItemStack item) {
+        ItemMeta meta = item.getItemMeta();
+        if (meta == null) return false;
+        PersistentDataContainer pdc = meta.getPersistentDataContainer();
+        Byte val = pdc.get(keyPointTool, PersistentDataType.BYTE);
+        return val != null && val == (byte) 1;
+    }
+
+    private void removePointTools(Player p) {
+        ItemStack[] contents = p.getInventory().getContents();
+        for (int i = 0; i < contents.length; i++) {
+            ItemStack item = contents[i];
+            if (item == null || item.getType() != Material.BLAZE_ROD) continue;
+            if (!isPointTool(item)) continue;
+            contents[i] = null;
+        }
+        p.getInventory().setContents(contents);
+
+        ItemStack offhand = p.getInventory().getItemInOffHand();
+        if (offhand != null && offhand.getType() == Material.BLAZE_ROD && isPointTool(offhand)) {
+            p.getInventory().setItemInOffHand(null);
+        }
     }
 }

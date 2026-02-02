@@ -19,7 +19,6 @@ public class BuilderManager {
     public BuilderSession getOrCreate(Player p) {
         return sessions.computeIfAbsent(p.getUniqueId(), (id) -> {
             BuilderSession s = new BuilderSession();
-            // default palette from a built-in show if it exists
             s.palette = plugin.getConfig().getStringList("shows.celebration.palette");
             if (s.palette == null) s.palette = java.util.List.of();
             return s;
@@ -33,4 +32,23 @@ public class BuilderManager {
     public void clear(Player p) {
         sessions.remove(p.getUniqueId());
     }
+
+    public BuilderSession startEditing(Player p, DraftShow show) {
+        BuilderSession s = new BuilderSession();
+        s.name = show.name;
+        s.points.addAll(show.points);
+        s.durationSeconds = show.durationSeconds;
+        s.intervalTicks = show.intervalTicks;
+        s.radius = show.radius;
+        s.powerMin = show.powerMin;
+        s.powerMax = show.powerMax;
+        s.fireworkTypes = new java.util.ArrayList<>(show.fireworkTypes);
+        s.palette = new java.util.ArrayList<>(show.palette);
+        s.particleTrail = show.particleTrail;
+        s.trailParticles = new java.util.ArrayList<>(show.trailParticles);
+        s.collectingPoints = false;
+        sessions.put(p.getUniqueId(), s);
+        return s;
+    }
+
 }
